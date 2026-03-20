@@ -26,6 +26,9 @@ jobs:
       - name: Lint (Selene)
         run: selene src/
 
+      - name: Strip test files from build
+        run: find src -name "*.spec.lua" -delete
+
       - name: Build .rbxm
         run: rojo build default.project.json -o Riptide.rbxm
 
