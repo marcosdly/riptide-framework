@@ -1,0 +1,49 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Aftman
+        uses: ok-nick/setup-aftman@v0.4.2
+
+      - name: Check formatting (StyLua)
+        run: stylua --check src/
+
+      - name: Lint (Selene)
+        run: selene src/
+
+      - name: Build .rbxm
+        run: rojo build default.project.json -o Riptide.rbxm
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Riptide ${{ github.ref_name }}
+          body: |
+            ## 🌊 Riptide ${{ github.ref_name }}
+
+            ### Installation
+
+            **Via Wally:**
+            ```toml
+            [dependencies]
+            Riptide = "riptide-project/riptide@${{ github.ref_name }}"
+            ```
+
+            **Manual:** Download `Riptide.rbxm` below and insert into `ReplicatedStorage`.
+          files: Riptide.rbxm
+          generate_release_notes: true

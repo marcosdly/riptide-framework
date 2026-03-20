@@ -9,15 +9,19 @@
 
 # 🌊 Riptide Framework
 
-Riptide is a lightweight, strictly-typed, and modular Roblox framework built for Wally. It features phased initialization, safe dependency injection, and a robust unified networking layer.
+Riptide is a lightweight, strictly-typed, and modular Roblox framework built for Wally. It features phased initialization, safe dependency injection, a robust unified networking layer, and a shared ComponentService for managing tagged instances.
 
-## 📦 Installation (Wally)
+## 📦 Installation
 
+### Via Wally
 Add Riptide to your `wally.toml`:
 ```toml
 [dependencies]
-Riptide = "thereplicatedfirst/riptide@^0.2.0"
+Riptide = "riptide-project/riptide@^0.3.0"
 ```
+
+### Manual
+Download `Riptide.rbxm` from the [latest release](https://github.com/riptide-project/framework/releases/latest) and insert it into `ReplicatedStorage`.
 
 ## 🏁 How to Start
 
@@ -27,9 +31,11 @@ Riptide does not start automatically. You must launch the framework from your ow
 ```lua
 local Riptide = require(ReplicatedStorage.Packages.Riptide)
 local MyServerModules = ServerScriptService:WaitForChild("MyServerModules")
+local MyComponents = ReplicatedStorage:WaitForChild("Components") -- optional
 
 Riptide.Server.Launch({
-    ModulesFolder = MyServerModules
+    ModulesFolder = MyServerModules,
+    ComponentsFolder = MyComponents, -- optional
 })
 ```
 
@@ -37,9 +43,11 @@ Riptide.Server.Launch({
 ```lua
 local Riptide = require(ReplicatedStorage.Packages.Riptide)
 local MyClientModules = ReplicatedStorage:WaitForChild("MyClientModules")
+local MyComponents = ReplicatedStorage:WaitForChild("Components") -- optional
 
 Riptide.Client.Launch({
-    ModulesFolder = MyClientModules
+    ModulesFolder = MyClientModules,
+    ComponentsFolder = MyComponents, -- optional
 })
 ```
 
@@ -85,14 +93,57 @@ Riptide automatically creates a single RemoteEvent and RemoteFunction inside its
 
 **Client-Side API**
 - `Network.Register(name, callback)`: Listen for server events.
+- `Network.Unregister(name, callback)`: Remove a previously registered handler.
 - `Network.FireServer(name, ...)`: Send event data to the server.
 - `Network.InvokeServer(name, ...)`: Request data from the server.
 
 **Server-Side API**
 - `Network.Register(name, callback)`: Listen for client events. Callback automatically receives `player` as the first argument.
+- `Network.Unregister(name, callback)`: Remove a previously registered handler.
 - `Network.FireClient(player, name, ...)`: Send event data to a specific player.
 - `Network.FireAllClients(name, ...)`: Broadcast event data to everyone.
 - `Network.InvokeClient(player, name, ...)`: Request data from a client.
+
+## 🧩 ComponentService (`Riptide.ComponentService`)
+
+A shared (server & client) system for managing component objects linked to tagged Instances via `CollectionService`.
+
+Each Component is a `ModuleScript` whose name matches the tag. It must expose a `new(instance)` constructor and optionally a `Destroy(self)` cleanup method.
+
+### Example Component (`Lava.lua`)
+```lua
+local Lava = {}
+Lava.__index = Lava
+
+function Lava.new(instance: BasePart)
+    local self = setmetatable({
+        _instance = instance,
+        _connection = nil :: RBXScriptConnection?,
+    }, Lava)
+
+    self._connection = instance.Touched:Connect(function(hit)
+        local humanoid = hit.Parent and hit.Parent:FindFirstChild("Humanoid")
+        if humanoid then
+            (humanoid :: Humanoid):TakeDamage(10)
+        end
+    end)
+
+    return self
+end
+
+function Lava:Destroy()
+    if self._connection then
+        self._connection:Disconnect()
+        self._connection = nil
+    end
+end
+
+return Lava
+```
+
+**API**
+- `ComponentService:Get(instance)`: Get the first component attached to an instance.
+- `ComponentService:Get(instance, tagName)`: Get a specific component by tag name.
 
 ## 📄 License
 

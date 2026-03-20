@@ -27,6 +27,18 @@ local Remotes: Folder
 local EventDispatcher: RemoteEvent
 local FunctionDispatcher: RemoteFunction
 
+-- Safe handler dispatch helper
+local function DispatchHandlers(funcName: string, handlers: { Callback }, ...: any)
+	for _, handler in ipairs(handlers) do
+		task.spawn(function(...)
+			local ok, err = xpcall(handler, debug.traceback, ...)
+			if not ok then
+				warn(string.format("[Network] Handler error for '%s': %s", funcName, tostring(err)))
+			end
+		end, ...)
+	end
+end
+
 if IS_SERVER then
 	local existingRemotes = Shared:FindFirstChild("Remotes")
 	if not existingRemotes then
@@ -50,9 +62,7 @@ if IS_SERVER then
 	EventDispatcher.OnServerEvent:Connect(function(player: Player, funcName: string, ...: any)
 		local handlers = Handlers[funcName]
 		if handlers then
-			for _, handler in ipairs(handlers) do
-				task.spawn(handler, player, ...)
-			end
+			DispatchHandlers(funcName, handlers, player, ...)
 		end
 	end)
 
@@ -80,9 +90,7 @@ else
 	EventDispatcher.OnClientEvent:Connect(function(funcName: string, ...: any)
 		local handlers = Handlers[funcName]
 		if handlers then
-			for _, handler in ipairs(handlers) do
-				task.spawn(handler, ...)
-			end
+			DispatchHandlers(funcName, handlers, ...)
 		end
 	end)
 
@@ -121,6 +129,10 @@ function Network.Unregister(funcName: string, callback: Callback)
 				table.remove(handlers, i)
 				break
 			end
+		end
+		-- Clean up empty handler arrays to prevent memory growth
+		if #handlers == 0 then
+			Handlers[funcName] = nil
 		end
 	end
 end

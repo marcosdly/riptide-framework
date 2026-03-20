@@ -1,9 +1,11 @@
 --!strict
 -- Riptide/Utilities/Async.lua
--- Wrapper for yielding functions with timeout constraints
+-- Wrapper for yielding functions with timeout constraints, retries, and parallel execution
 
 export type AsyncModule = {
 	Run: (fn: (...any) -> ...any, timeout: number, ...any) -> ...any,
+	Retry: (fn: (...any) -> ...any, maxAttempts: number, delay: number?, ...any) -> ...any,
+	Parallel: (fns: { () -> any }, timeout: number?) -> { any },
 }
 
 local Async = {}
@@ -14,34 +16,49 @@ local Async = {}
 	
 	@param fn The yielding function to execute.
 	@param timeout The maximum duration to wait (in seconds).
-	@param fallback The value(s) to return if the execution times out.
+	@param ... The fallback value(s) to return if the execution times out.
 ]]
 function Async.Run(fn: (...any) -> ...any, timeout: number, ...: any): ...any
+	local isYielding = false
 	local thread = coroutine.running()
 	local isFinished = false
 	local isTimedOut = false
 
 	local fallbackArgs = { ... }
+	local finalResults = nil
 
 	-- Run the target function asynchronously
 	task.spawn(function()
 		local results = { pcall(fn) }
-		
+
+		-- If already timed out, discard results silently
 		if isTimedOut then
-			-- The parent thread has already resumed and returned the fallback. 
-			-- We don't want to double resume or emit unhandled errors.
 			return
 		end
-		
-		isFinished = true
-		local success = table.remove(results, 1)
 
-		if success then
-			task.spawn(thread, true, table.unpack(results))
+		isFinished = true
+
+		if isYielding then
+			local success = table.remove(results, 1)
+			if success then
+				task.spawn(thread, true, table.unpack(results))
+			else
+				task.spawn(thread, false, results[1])
+			end
 		else
-			task.spawn(thread, false, results[1])
+			finalResults = results
 		end
 	end)
+
+	if isFinished then
+		local success = table.remove(finalResults, 1)
+		if not success then
+			error(tostring(finalResults[1]), 2)
+		end
+		return table.unpack(finalResults)
+	end
+
+	isYielding = true
 
 	-- Run the timeout watcher
 	task.delay(timeout, function()
@@ -52,13 +69,104 @@ function Async.Run(fn: (...any) -> ...any, timeout: number, ...: any): ...any
 		end
 	end)
 
-	local ok, result = coroutine.yield()
+	local yieldedResults = { coroutine.yield() }
+	local ok = table.remove(yieldedResults, 1)
 	if not ok then
 		-- Only throw underlying errors if the function failed before timing out
-		error(tostring(result), 2)
+		error(tostring(yieldedResults[1]), 2)
 	end
 
-	return result
+	return table.unpack(yieldedResults)
+end
+
+--[[
+	Retries a function up to `maxAttempts` times. If the function throws an error,
+	it waits `delay` seconds before the next attempt. Returns the result on success,
+	or re-throws the last error if all attempts fail.
+
+	@param fn The function to retry.
+	@param maxAttempts Maximum number of attempts (must be >= 1).
+	@param delay Optional delay in seconds between retries (default 0).
+	@param ... Arguments to pass to fn on each attempt.
+]]
+function Async.Retry(fn: (...any) -> ...any, maxAttempts: number, delay: number?, ...: any): ...any
+	local lastError: string = ""
+	local args = { ... }
+
+	for attempt = 1, maxAttempts do
+		local results = { pcall(fn, table.unpack(args)) }
+		local success = table.remove(results, 1)
+
+		if success then
+			return table.unpack(results)
+		end
+
+		lastError = tostring(results[1])
+
+		if attempt < maxAttempts then
+			local waitTime = delay or 0
+			if waitTime > 0 then
+				task.wait(waitTime)
+			end
+		end
+	end
+
+	error(string.format("[Async.Retry] All %d attempts failed. Last error: %s", maxAttempts, lastError), 2)
+end
+
+--[[
+	Runs an array of functions in parallel and waits for all to complete.
+	If `timeout` is provided, returns after the timeout with `nil` for unfinished tasks.
+	
+	@param fns Array of zero-argument functions to execute.
+	@param timeout Optional maximum duration to wait for all results (in seconds).
+	@return Array of results in the same order as `fns`. Failed functions return nil.
+]]
+function Async.Parallel(fns: { () -> any }, timeout: number?): { any }
+	local count = #fns
+	local results: { any } = table.create(count)
+	local remaining = count
+	local thread = coroutine.running()
+	local isYielding = false
+	local isDone = false
+
+	for i, fn in ipairs(fns) do
+		task.spawn(function()
+			local ok, result = pcall(fn)
+			if ok then
+				results[i] = result
+			else
+				results[i] = nil
+				warn(string.format("[Async.Parallel] Task %d failed: %s", i, tostring(result)))
+			end
+
+			remaining -= 1
+			if remaining == 0 and isYielding and not isDone then
+				isDone = true
+				task.spawn(thread)
+			end
+		end)
+	end
+
+	-- If all finished synchronously before we yielded
+	if remaining == 0 then
+		return results
+	end
+
+	isYielding = true
+
+	-- Set up optional timeout
+	if timeout then
+		task.delay(timeout, function()
+			if not isDone then
+				isDone = true
+				task.spawn(thread)
+			end
+		end)
+	end
+
+	coroutine.yield()
+	return results
 end
 
 return Async :: AsyncModule

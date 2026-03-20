@@ -1,32 +1,15 @@
+--!strict
+-- Riptide/Server/Core/ServerInitializer.lua
 local ServerInitializer = {}
 ServerInitializer._RiptideRef = nil
 
 local loadedModules = {}
+local isLaunched = false
 
 type Config = {
 	ModulesFolder: Folder,
+	ComponentsFolder: Folder?,
 }
-
-local function SetupNetwork()
-	local sharedFolder = script.Parent.Parent.Parent:WaitForChild("shared")
-
-	local folder = sharedFolder:FindFirstChild("Remotes")
-	if not folder then
-		folder = Instance.new("Folder")
-		folder.Name = "Remotes"
-		folder.Parent = sharedFolder
-
-		local event = Instance.new("RemoteEvent")
-		event.Name = "EventDispatcher"
-		event.Parent = folder
-
-		local func = Instance.new("RemoteFunction")
-		func.Name = "FunctionDispatcher"
-		func.Parent = folder
-
-		print("🌊 [Riptide] Network Remotes Created")
-	end
-end
 
 local function LoadModules(folder: Folder)
 	local riptide = ServerInitializer._RiptideRef
@@ -47,6 +30,12 @@ local function LoadModules(folder: Folder)
 end
 
 ServerInitializer.Launch = function(config: Config)
+	if isLaunched then
+		warn("🌊 [Riptide] Server framework already launched!")
+		return
+	end
+	isLaunched = true
+
 	if not config or not config.ModulesFolder then
 		error("[Riptide] ServerInitializer.Launch requires a config table with a ModulesFolder.")
 	end
@@ -58,10 +47,14 @@ ServerInitializer.Launch = function(config: Config)
 
 	print("🌊 [Riptide] Server Initialization Started...")
 
-	SetupNetwork()
-
+	-- 1. LOAD PHASE
 	LoadModules(config.ModulesFolder)
 
+	if config.ComponentsFolder then
+		riptide.ComponentService:_start(config.ComponentsFolder)
+	end
+
+	-- 2. INIT PHASE
 	for _, data in ipairs(loadedModules) do
 		if type(data.module.Init) == "function" then
 			local ok, err = xpcall(data.module.Init, debug.traceback, data.module, riptide)
@@ -71,6 +64,7 @@ ServerInitializer.Launch = function(config: Config)
 		end
 	end
 
+	-- 3. START PHASE
 	for _, data in ipairs(loadedModules) do
 		if type(data.module.Start) == "function" then
 			task.spawn(function()
@@ -81,6 +75,9 @@ ServerInitializer.Launch = function(config: Config)
 			end)
 		end
 	end
+
+	-- Free references after init is complete
+	table.clear(loadedModules)
 
 	print("🌊 [Riptide] ✅ Server Ready.")
 end

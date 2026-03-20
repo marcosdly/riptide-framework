@@ -5,4 +5,9 @@
 /*.rbxlx.lock
 /*.rbxl.lock
 
+# Generated files
 sourcemap.json
+
+# Wally packages (installed via `wally install`)
+Packages/
+DevPackages/

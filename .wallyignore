@@ -1,0 +1,6 @@
+**/*.spec.lua
+**/*.spec.luau
+dev.project.json
+test/
+DevPackages/
+stylua.toml

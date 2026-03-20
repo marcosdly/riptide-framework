@@ -1,11 +1,10 @@
--- RiptideClient/Core/ClientInitializer.lua
+--!strict
+-- Riptide/Client/Core/ClientInitializer.lua
 local ClientInitializer = {}
 ClientInitializer._RiptideRef = nil
 
-local ComponentService = require(script.Parent.ComponentService)
-ClientInitializer.ComponentService = ComponentService
-
 local loadedModules = {}
+local isLaunched = false
 
 type Config = {
 	ModulesFolder: Folder,
@@ -31,6 +30,12 @@ local function LoadModules(folder: Folder)
 end
 
 ClientInitializer.Launch = function(config: Config)
+	if isLaunched then
+		warn("🌊 [Riptide] Client framework already launched!")
+		return
+	end
+	isLaunched = true
+
 	if not config or not config.ModulesFolder then
 		error("[Riptide] ClientInitializer.Launch requires a config table with a ModulesFolder.")
 	end
@@ -46,7 +51,7 @@ ClientInitializer.Launch = function(config: Config)
 	LoadModules(config.ModulesFolder)
 
 	if config.ComponentsFolder then
-		ComponentService:_start(config.ComponentsFolder)
+		riptide.ComponentService:_start(config.ComponentsFolder)
 	end
 
 	-- 2. INIT PHASE
@@ -73,6 +78,9 @@ ClientInitializer.Launch = function(config: Config)
 			end)
 		end
 	end
+
+	-- Free references after init is complete
+	table.clear(loadedModules)
 
 	print("[Client] ✅ Initialization completed.")
 end

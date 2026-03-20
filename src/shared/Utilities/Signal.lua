@@ -5,17 +5,19 @@
 export type Connection = {
 	Connected: boolean,
 	Disconnect: (self: Connection) -> (),
-	_signal: Signal,
-	_fn: (...any) -> (),
+	_signal: Signal?,
+	_fn: ((...any) -> ())?,
 	_next: Connection?,
 }
 
 export type Signal = {
 	_head: Connection?,
 	Connect: (self: Signal, fn: (...any) -> ()) -> Connection,
+	Once: (self: Signal, fn: (...any) -> ()) -> Connection,
 	Fire: (self: Signal, ...any) -> (),
 	Wait: (self: Signal) -> ...any,
 	DisconnectAll: (self: Signal) -> (),
+	Destroy: (self: Signal) -> (),
 }
 
 local Connection = {}
@@ -32,20 +34,30 @@ function Connection.new(signal: Signal, fn: (...any) -> ()): Connection
 end
 
 function Connection:Disconnect()
-	if not self.Connected then return end
+	if not self.Connected then
+		return
+	end
 	self.Connected = false
 
-	if self._signal._head == self then
-		self._signal._head = self._next
-	else
-		local curr = self._signal._head
-		while curr and curr._next ~= self do
-			curr = curr._next
-		end
-		if curr then
-			curr._next = self._next
+	local signal = self._signal
+	if signal then
+		if signal._head == self then
+			signal._head = self._next
+		else
+			local curr = signal._head
+			while curr and curr._next ~= self do
+				curr = curr._next
+			end
+			if curr then
+				curr._next = self._next
+			end
 		end
 	end
+
+	-- Prevent memory leaks: clear references
+	self._signal = nil
+	self._fn = nil
+	self._next = nil
 end
 
 local Signal = {}
@@ -67,11 +79,20 @@ function Signal:Connect(fn: (...any) -> ()): Connection
 	return connection
 end
 
+function Signal:Once(fn: (...any) -> ()): Connection
+	local connection: Connection
+	connection = self:Connect(function(...)
+		connection:Disconnect()
+		fn(...)
+	end)
+	return connection
+end
+
 function Signal:Fire(...: any)
 	local curr = self._head
 	while curr do
 		local nextConn = curr._next
-		if curr.Connected then
+		if curr.Connected and curr._fn then
 			-- Spawn prevents one yielding connection from blocking the rest
 			task.spawn(curr._fn, ...)
 		end
@@ -94,10 +115,19 @@ end
 function Signal:DisconnectAll()
 	local curr = self._head
 	while curr do
+		local nextConn = curr._next
 		curr.Connected = false
-		curr = curr._next
+		curr._signal = nil
+		curr._fn = nil
+		curr._next = nil
+		curr = nextConn
 	end
 	(self :: any)._head = nil
+end
+
+function Signal:Destroy()
+	self:DisconnectAll()
+	setmetatable(self :: any, nil)
 end
 
 return Signal
