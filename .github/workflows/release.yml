@@ -44,7 +44,7 @@ jobs:
             **Via Wally:**
             ```toml
             [dependencies]
-            Riptide = "riptide-project/riptide@${{ github.ref_name }}"
+            Riptide = "thereplicatedfirst/riptide@${{ github.ref_name }}"
             ```
 
             **Manual:** Download `Riptide.rbxm` below and insert into `ReplicatedStorage`.
