@@ -22,7 +22,27 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - _No entries yet._
 
 ### Breaking
-- _No entries yet._
+- _No entries yet._ 
+
+## [0.5.0] - 2026-03-26
+
+### Added
+- `SharedModulesFolder` support for both `Server.Launch` and `Client.Launch`.
+- `ModulesFolder` now accepts either a single `Folder` or an array of `Folder` values.
+- Initializer test coverage for both client and server multi-folder/shared-folder loading paths.
+
+### Changed
+- Module loading phase now normalizes folder inputs and processes shared folders before side-specific folders.
+- README launch examples updated to document `SharedModulesFolder` and multi-folder module config.
+- Package manager guidance now documents dual usage (`Pesde` + `Wally`) with Pesde as the recommended path.
+
+### Fixed
+- Duplicate `ModuleScript` loads across configured folders are prevented.
+- Duplicate canonical module IDs are now skipped deterministically with warning output.
+
+### Notes
+- Release target: dual publish for Wally and Pesde.
+- `v0.5.0` is the last release with first-class Wally support; migration target is Pesde-first.
 
 ## [0.4.0] - 2026-03-26
 

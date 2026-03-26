@@ -1,0 +1,27 @@
+name = "riptide/core"
+version = "0.5.0"
+description = "A lightweight and professional framework for Roblox."
+license = "MIT"
+authors = ["TheReplicatedFirst"]
+repository = "https://github.com/riptide-project/framework"
+
+includes = [
+	"pesde.toml",
+	"README.md",
+	"LICENSE",
+	"src/**",
+]
+
+[target]
+environment = "roblox"
+lib = "src/init.lua"
+build_files = ["src"]
+
+[indices]
+default = "https://github.com/pesde-pkg/index"
+
+[wally_indices]
+default = "https://github.com/UpliftGames/wally-index"
+
+[engines]
+pesde = "^0.6.0"

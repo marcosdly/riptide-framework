@@ -9,15 +9,31 @@
 
 # 🌊 Riptide Framework
 
-Riptide is a lightweight, strictly-typed, and modular Roblox framework built for Wally. It features phased initialization, safe dependency injection, a robust unified networking layer, and a shared ComponentService for managing tagged instances.
+Riptide is a lightweight, strictly-typed, and modular Roblox framework. It features phased initialization, safe dependency injection, a robust unified networking layer, and a shared ComponentService for managing tagged instances.
 
 ## 📦 Installation
+
+> [!WARNING]
+> `v0.5.0` is the last release with first-class Wally support.
+> Starting from the next major cycle, Pesde is the primary package manager.
+
+### Via Pesde (recommended)
+Add Riptide to your `pesde.toml` dependencies:
+```toml
+[dependencies]
+Riptide = { name = "riptide/core", version = "^0.5.0", target = "roblox" }
+```
+
+Then install dependencies:
+```bash
+pesde install
+```
 
 ### Via Wally
 Add Riptide to your `wally.toml`:
 ```toml
 [dependencies]
-Riptide = "thereplicatedfirst/riptide@^0.4.0"
+Riptide = "thereplicatedfirst/riptide@^0.5.0"
 ```
 
 ### Manual
@@ -31,10 +47,12 @@ Riptide does not start automatically. You must launch the framework from your ow
 ```lua
 local Riptide = require(ReplicatedStorage.Packages.Riptide)
 local MyServerModules = ServerScriptService:WaitForChild("MyServerModules")
+local MySharedModules = ReplicatedStorage:WaitForChild("SharedModules")
 local MyComponents = ReplicatedStorage:WaitForChild("Components") -- optional
 
 Riptide.Server.Launch({
-    ModulesFolder = MyServerModules,
+    ModulesFolder = MyServerModules, -- Folder or { Folder, ... }
+    SharedModulesFolder = MySharedModules, -- optional: Folder or { Folder, ... }
     ComponentsFolder = MyComponents, -- optional
 })
 ```
@@ -43,10 +61,12 @@ Riptide.Server.Launch({
 ```lua
 local Riptide = require(ReplicatedStorage.Packages.Riptide)
 local MyClientModules = ReplicatedStorage:WaitForChild("MyClientModules")
+local MySharedModules = ReplicatedStorage:WaitForChild("SharedModules")
 local MyComponents = ReplicatedStorage:WaitForChild("Components") -- optional
 
 Riptide.Client.Launch({
-    ModulesFolder = MyClientModules,
+    ModulesFolder = { MyClientModules }, -- Folder or { Folder, ... }
+    SharedModulesFolder = { MySharedModules }, -- optional: Folder or { Folder, ... }
     ComponentsFolder = MyComponents, -- optional
 })
 ```

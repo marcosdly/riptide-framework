@@ -6,8 +6,11 @@ ServerInitializer._RiptideRef = nil
 local loadedModules = {}
 local isLaunched = false
 
+type ModuleFolders = Folder | { Folder }
+
 type Config = {
-	ModulesFolder: Folder,
+	ModulesFolder: ModuleFolders,
+	SharedModulesFolder: ModuleFolders?,
 	ComponentsFolder: Folder?,
 }
 
@@ -27,13 +30,58 @@ local function GetCanonicalModuleId(modulesFolder: Folder, moduleScript: ModuleS
 	return table.concat(parts, "/")
 end
 
-local function LoadModules(folder: Folder)
+local function NormalizeFolders(input: ModuleFolders?, fieldName: string): { Folder }
+	if input == nil then
+		return {}
+	end
+
+	if typeof(input) == "Instance" then
+		local instanceInput = input :: Instance
+		if instanceInput:IsA("Folder") then
+			return { instanceInput }
+		end
+
+		error(string.format("[Riptide] %s must be a Folder or array of Folder values.", fieldName))
+	end
+
+	if type(input) ~= "table" then
+		error(string.format("[Riptide] %s must be a Folder or array of Folder values.", fieldName))
+	end
+
+	local folders = {} :: { Folder }
+	for i, folder in ipairs(input :: { any }) do
+		if typeof(folder) ~= "Instance" or not (folder :: Instance):IsA("Folder") then
+			error(string.format("[Riptide] %s[%d] must be a Folder.", fieldName, i))
+		end
+		table.insert(folders, folder :: Folder)
+	end
+
+	return folders
+end
+
+local function LoadModules(folder: Folder, seenModuleScripts: { [ModuleScript]: boolean })
 	local riptide = ServerInitializer._RiptideRef
 	for _, instance in ipairs(folder:GetDescendants()) do
 		if instance:IsA("ModuleScript") then
+			if seenModuleScripts[instance] then
+				continue
+			end
+			seenModuleScripts[instance] = true
+
 			local ok, module = xpcall(require, debug.traceback, instance)
 			if ok and type(module) == "table" then
 				local canonicalId = GetCanonicalModuleId(folder, instance)
+				if riptide._modules[canonicalId] ~= nil then
+					warn(
+						string.format(
+							"[Server] Duplicate canonical module id '%s'. Skipping '%s'.",
+							canonicalId,
+							instance:GetFullName()
+						)
+					)
+					continue
+				end
+
 				riptide._modules[canonicalId] = module
 
 				local aliasName = instance.Name
@@ -83,7 +131,14 @@ ServerInitializer.Launch = function(config: Config)
 	print("🌊 [Riptide] Server Initialization Started...")
 
 	-- 1. LOAD PHASE
-	LoadModules(config.ModulesFolder)
+	local seenModuleScripts = {} :: { [ModuleScript]: boolean }
+	for _, sharedFolder in ipairs(NormalizeFolders(config.SharedModulesFolder, "SharedModulesFolder")) do
+		LoadModules(sharedFolder, seenModuleScripts)
+	end
+
+	for _, modulesFolder in ipairs(NormalizeFolders(config.ModulesFolder, "ModulesFolder")) do
+		LoadModules(modulesFolder, seenModuleScripts)
+	end
 
 	if config.ComponentsFolder then
 		riptide.ComponentService:_start(config.ComponentsFolder)
