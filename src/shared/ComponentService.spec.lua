@@ -1,8 +1,22 @@
 --!strict
 return function()
 	local ComponentService = require(script.Parent.ComponentService)
+	local SignalModuleScript = script.Parent.Utilities:WaitForChild("Signal") :: ModuleScript
+
+	local function countKeys(tbl)
+		local count = 0
+		for _ in pairs(tbl) do
+			count += 1
+		end
+		return count
+	end
 
 	describe("ComponentService", function()
+		beforeEach(function()
+			(ComponentService :: any)._isStarted = false
+			table.clear((ComponentService :: any)._tagListeners)
+		end)
+
 		it("should initialize component classes when _start is called", function()
 			-- Create a fake Folder to mock the Modules behavior
 			local MockComponentsFolder = Instance.new("Folder")
@@ -79,6 +93,22 @@ return function()
 
 			expect(destroyedCalled).to.equal(true)
 			expect(ComponentService:Get(mockInstance)).to.equal(nil)
+		end)
+
+		it("should keep CollectionService listener count stable on duplicate _start", function()
+			local folder = Instance.new("Folder")
+			local componentModule = SignalModuleScript:Clone()
+			componentModule.Name = "IdempotentComponent"
+			componentModule.Parent = folder
+
+			ComponentService:_start(folder)
+			local listenerCountAfterFirstStart = countKeys((ComponentService :: any)._tagListeners)
+
+			ComponentService:_start(folder)
+			local listenerCountAfterSecondStart = countKeys((ComponentService :: any)._tagListeners)
+
+			expect(listenerCountAfterFirstStart).to.equal(1)
+			expect(listenerCountAfterSecondStart).to.equal(listenerCountAfterFirstStart)
 		end)
 	end)
 end

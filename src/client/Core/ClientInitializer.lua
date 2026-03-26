@@ -11,15 +11,50 @@ type Config = {
 	ComponentsFolder: Folder?,
 }
 
+local function GetCanonicalModuleId(modulesFolder: Folder, moduleScript: ModuleScript): string
+	local parts = { moduleScript.Name }
+	local current: Instance? = moduleScript.Parent
+
+	while current and current ~= modulesFolder do
+		table.insert(parts, 1, current.Name)
+		current = current.Parent
+	end
+
+	if current ~= modulesFolder then
+		return moduleScript.Name
+	end
+
+	return table.concat(parts, "/")
+end
+
 local function LoadModules(folder: Folder)
 	local riptide = ClientInitializer._RiptideRef
 	for _, instance in ipairs(folder:GetDescendants()) do
 		if instance:IsA("ModuleScript") then
 			local ok, module = xpcall(require, debug.traceback, instance)
 			if ok and type(module) == "table" then
-				riptide._modules[instance.Name] = module
+				local canonicalId = GetCanonicalModuleId(folder, instance)
+				riptide._modules[canonicalId] = module
+
+				local aliasName = instance.Name
+				if aliasName ~= canonicalId then
+					local aliasState = riptide._moduleAliases[aliasName]
+					if aliasState == nil then
+						riptide._moduleAliases[aliasName] = canonicalId
+					elseif aliasState ~= canonicalId and aliasState ~= false then
+						riptide._moduleAliases[aliasName] = false
+						warn(
+							string.format(
+								"[Client] Module alias conflict for '%s'. Use canonical module id (example: '%s').",
+								aliasName,
+								canonicalId
+							)
+						)
+					end
+				end
+
 				table.insert(loadedModules, {
-					name = instance.Name,
+					name = canonicalId,
 					module = module,
 				})
 			else

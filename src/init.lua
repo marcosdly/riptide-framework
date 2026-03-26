@@ -17,17 +17,42 @@ export type Riptide = {
 	Server: any,
 	Client: any,
 	_modules: { [string]: any },
+	_moduleAliases: { [string]: string | false },
 }
 
 local Riptide = {} :: Riptide
 
 Riptide._modules = {} :: { [string]: any }
+Riptide._moduleAliases = {} :: { [string]: string | false }
 Riptide.Signal = SignalModule
 Riptide.Async = AsyncModule
 Riptide.ComponentService = ComponentServiceModule
 
 function Riptide.GetModule(name: string): any
 	local module = Riptide._modules[name]
+	if module then
+		return module
+	end
+
+	local aliasValue = Riptide._moduleAliases[name]
+	if aliasValue == false then
+		warn(
+			string.format(
+				"🌊 [Riptide] Ambiguous module alias '%s'. Use canonical path id (example: 'Folder/%s').",
+				name,
+				name
+			)
+		)
+		return nil
+	end
+
+	if type(aliasValue) == "string" then
+		module = Riptide._modules[aliasValue]
+		if module then
+			return module
+		end
+	end
+
 	if not module then
 		warn(string.format("🌊 [Riptide] Failed to get module: '%s' is not registered!", name))
 	end

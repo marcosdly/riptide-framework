@@ -17,7 +17,7 @@ Riptide is a lightweight, strictly-typed, and modular Roblox framework built for
 Add Riptide to your `wally.toml`:
 ```toml
 [dependencies]
-Riptide = "riptide-project/riptide@^0.3.0"
+Riptide = "riptide-project/riptide@^0.4.0"
 ```
 
 ### Manual
@@ -56,7 +56,15 @@ Riptide.Client.Launch({
 Riptide completely eliminates the need for `require()` circles. Any `ModuleScript` inside your designated `ModulesFolder` will be automatically loaded into the Riptide Registry.
 
 > [!NOTE]
-> Services and Controllers are registered by their `ModuleScript` name.
+> Services and Controllers are registered by canonical module ID (relative path from `ModulesFolder`, e.g. `Economy/PlayerData`).
+> Short names are still supported as aliases when unique.
+
+If two modules share the same short name, Riptide marks that alias as ambiguous and requires full canonical path lookups.
+
+Examples:
+- `Riptide.GetService("Economy/PlayerData")` ✅ always deterministic
+- `Riptide.GetService("PlayerData")` ✅ only if alias is unique
+- `Riptide.GetService("Data")` ⚠️ returns `nil` when alias is ambiguous
 
 Methods are executed in strict phases:
 1. **`Init(Riptide)`**: Called synchronously. Use this to `GetService` or `GetController` and set up your variables.
@@ -91,6 +99,8 @@ return PlayerState
 
 Riptide automatically creates a single RemoteEvent and RemoteFunction inside its own package under the hood. No `ReplicatedStorage` clutter!
 
+As of `v0.4.0`, network event dispatch uses a reusable trampoline handler in the hot-path to reduce closure allocations during heavy event traffic.
+
 **Client-Side API**
 - `Network.Register(name, callback)`: Listen for server events.
 - `Network.Unregister(name, callback)`: Remove a previously registered handler.
@@ -107,6 +117,8 @@ Riptide automatically creates a single RemoteEvent and RemoteFunction inside its
 ## 🧩 ComponentService (`Riptide.ComponentService`)
 
 A shared (server & client) system for managing component objects linked to tagged Instances via `CollectionService`.
+
+As of `v0.4.0`, ComponentService startup is idempotent: repeated `_start(...)` calls are ignored to prevent duplicated CollectionService listeners.
 
 Each Component is a `ModuleScript` whose name matches the tag. It must expose a `new(instance)` constructor and optionally a `Destroy(self)` cleanup method.
 

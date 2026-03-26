@@ -27,15 +27,17 @@ local Remotes: Folder
 local EventDispatcher: RemoteEvent
 local FunctionDispatcher: RemoteFunction
 
+local function runHandler(handler: Callback, funcName: string, ...: any)
+	local ok, err = xpcall(handler, debug.traceback, ...)
+	if not ok then
+		warn(string.format("[Network] Handler error for '%s': %s", funcName, tostring(err)))
+	end
+end
+
 -- Safe handler dispatch helper
 local function DispatchHandlers(funcName: string, handlers: { Callback }, ...: any)
 	for _, handler in ipairs(handlers) do
-		task.spawn(function(...)
-			local ok, err = xpcall(handler, debug.traceback, ...)
-			if not ok then
-				warn(string.format("[Network] Handler error for '%s': %s", funcName, tostring(err)))
-			end
-		end, ...)
+		task.spawn(runHandler, handler, funcName, ...)
 	end
 end
 

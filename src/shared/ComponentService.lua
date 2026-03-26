@@ -12,6 +12,8 @@ export type ComponentClass = {
 export type ComponentServiceAPI = {
 	_registry: { [Instance]: { [string]: any } },
 	_destroyingConns: { [Instance]: { [string]: RBXScriptConnection } },
+	_tagListeners: { [string]: { added: RBXScriptConnection, removed: RBXScriptConnection } },
+	_isStarted: boolean,
 	Get: (self: ComponentServiceAPI, instance: Instance, tagName: string?) -> any?,
 	_start: (self: ComponentServiceAPI, componentsFolder: Folder) -> (),
 }
@@ -24,6 +26,8 @@ ComponentService._registry = setmetatable({}, { __mode = "k" }) :: { [Instance]:
 
 -- Track Destroying connections so we can clean them up when a tag is removed
 ComponentService._destroyingConns = setmetatable({}, { __mode = "k" }) :: { [Instance]: { [string]: RBXScriptConnection } }
+ComponentService._tagListeners = {} :: { [string]: { added: RBXScriptConnection, removed: RBXScriptConnection } }
+ComponentService._isStarted = false
 
 --[[ 
 	Retrieves a registered Component wrapper attached to a specific instance.
@@ -78,6 +82,11 @@ local function SetupComponent(
 	tagName: string,
 	ComponentClass: ComponentClass
 )
+	local componentsForInstance = self._registry[instance]
+	if componentsForInstance and componentsForInstance[tagName] ~= nil then
+		return
+	end
+
 	local success, result = pcall(function()
 		return ComponentClass.new(instance)
 	end)
@@ -101,6 +110,13 @@ local function SetupComponent(
 end
 
 function ComponentService:_start(componentsFolder: Folder)
+	if self._isStarted then
+		warn("[ComponentService] _start called more than once. Ignoring duplicate start.")
+		return
+	end
+
+	self._isStarted = true
+
 	for _, moduleScript in ipairs(componentsFolder:GetDescendants()) do
 		if moduleScript:IsA("ModuleScript") then
 			local tagName = moduleScript.Name
@@ -129,14 +145,19 @@ function ComponentService:_start(componentsFolder: Folder)
 			end
 
 			-- Bind to CollectionService added signals
-			CollectionService:GetInstanceAddedSignal(tagName):Connect(function(instance: Instance)
+			local addedConn = CollectionService:GetInstanceAddedSignal(tagName):Connect(function(instance: Instance)
 				SetupComponent(self, instance, tagName, ComponentClass)
 			end)
 
 			-- Bind to CollectionService removed signals
-			CollectionService:GetInstanceRemovedSignal(tagName):Connect(function(instance: Instance)
+			local removedConn = CollectionService:GetInstanceRemovedSignal(tagName):Connect(function(instance: Instance)
 				CleanupComponent(self, instance, tagName)
 			end)
+
+			self._tagListeners[tagName] = {
+				added = addedConn,
+				removed = removedConn,
+			}
 
 			-- Find any instances that already exist in the world right now
 			for _, instance in ipairs(CollectionService:GetTagged(tagName)) do

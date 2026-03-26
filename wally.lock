@@ -3,11 +3,11 @@
 registry = "test"
 
 [[package]]
+name = "riptide-project/riptide"
+version = "0.3.0"
+dependencies = [["TestEZ", "roblox/testez@0.4.1"]]
+
+[[package]]
 name = "roblox/testez"
 version = "0.4.1"
 dependencies = []
-
-[[package]]
-name = "thereplicatedfirst/riptide"
-version = "0.2.0"
-dependencies = [["TestEZ", "roblox/testez@0.4.1"]]
