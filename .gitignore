@@ -8,6 +8,8 @@
 # Generated files
 sourcemap.json
 
-# Wally packages (installed via `wally install`)
+# Package managers
 Packages/
 DevPackages/
+luau_packages/
+.pesde/

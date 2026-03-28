@@ -1,10 +1,13 @@
 --!strict
 -- Riptide Framework Entry Point
+local CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
 local AsyncModule = require(script.shared.Utilities.Async)
 local ComponentServiceModule = require(script.shared.ComponentService)
 local NetworkModule = require(script.shared.Network)
 local SignalModule = require(script.shared.Utilities.Signal)
+
+local IS_SERVER = RunService:IsServer()
 
 export type Riptide = {
 	Network: NetworkModule.NetworkAPI,
@@ -59,18 +62,67 @@ function Riptide.GetModule(name: string): any
 	return module
 end
 
-if RunService:IsServer() then
+-- Initialize ComponentService with real CollectionService
+ComponentServiceModule:_init({
+	CollectionService = CollectionService,
+})
+
+-- Initialize Network with real Remotes
+local Shared = script.shared
+local Remotes: Folder
+local EventDispatcher: RemoteEvent
+local FunctionDispatcher: RemoteFunction
+
+if IS_SERVER then
+	local existingRemotes = Shared:FindFirstChild("Remotes")
+	if not existingRemotes then
+		Remotes = Instance.new("Folder")
+		Remotes.Name = "Remotes"
+		Remotes.Parent = Shared
+
+		EventDispatcher = Instance.new("RemoteEvent")
+		EventDispatcher.Name = "EventDispatcher"
+		EventDispatcher.Parent = Remotes
+
+		FunctionDispatcher = Instance.new("RemoteFunction")
+		FunctionDispatcher.Name = "FunctionDispatcher"
+		FunctionDispatcher.Parent = Remotes
+	else
+		Remotes = existingRemotes :: Folder
+		EventDispatcher = Remotes:WaitForChild("EventDispatcher") :: RemoteEvent
+		FunctionDispatcher = Remotes:WaitForChild("FunctionDispatcher") :: RemoteFunction
+	end
+else
+	Remotes = Shared:WaitForChild("Remotes") :: Folder
+	EventDispatcher = Remotes:WaitForChild("EventDispatcher") :: RemoteEvent
+	FunctionDispatcher = Remotes:WaitForChild("FunctionDispatcher") :: RemoteFunction
+end
+
+NetworkModule._init({
+	IsServer = IS_SERVER,
+	EventDispatcher = EventDispatcher,
+	FunctionDispatcher = FunctionDispatcher,
+})
+
+Riptide.Network = NetworkModule
+
+-- Wire up side-specific initializers and lookup guards
+if IS_SERVER then
 	local Server = require(script.server.Core.ServerInitializer)
 	Server._RiptideRef = Riptide
 	Riptide.Server = Server
 	Riptide.GetService = Riptide.GetModule
+	Riptide.GetController = function()
+		error("🌊 [Riptide] GetController is not available on the server. Use GetService instead.")
+	end
 else
 	local Client = require(script.client.Core.ClientInitializer)
 	Client._RiptideRef = Riptide
 	Riptide.Client = Client
 	Riptide.GetController = Riptide.GetModule
+	Riptide.GetService = function()
+		error("🌊 [Riptide] GetService is not available on the client. Use GetController instead.")
+	end
 end
-
-Riptide.Network = NetworkModule
 
 return Riptide

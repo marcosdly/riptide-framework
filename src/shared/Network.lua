@@ -1,31 +1,36 @@
 --!strict
 -- Riptide/Network.lua
--- Shared Network Manager
+-- Shared Network Manager with Dependency Injection for testability.
 
-local RunService = game:GetService("RunService")
-
-local IS_SERVER = RunService:IsServer()
-
--- Types
+local task = task
+if not task then
+	task = require("@lune/task")
+end
 type Callback = (...any) -> any
 type HandlerMap = { [string]: { Callback } }
 
+export type NetworkDeps = {
+	IsServer: boolean,
+	EventDispatcher: any,
+	FunctionDispatcher: any,
+}
+
 export type NetworkAPI = {
+	_init: (deps: NetworkDeps) -> (),
 	Register: (funcName: string, callback: Callback) -> (),
 	Unregister: (funcName: string, callback: Callback) -> (),
-	FireClient: (player: Player, funcName: string, ...any) -> (),
-	FireAllClients: (funcName: string, ...any) -> (),
-	InvokeClient: (player: Player, funcName: string, ...any) -> any,
-	FireServer: (funcName: string, ...any) -> (),
-	InvokeServer: (funcName: string, ...any) -> any,
+	FireClient: ((player: Player, funcName: string, ...any) -> ())?,
+	FireAllClients: ((funcName: string, ...any) -> ())?,
+	InvokeClient: ((player: Player, funcName: string, ...any) -> any)?,
+	FireServer: ((funcName: string, ...any) -> ())?,
+	InvokeServer: ((funcName: string, ...any) -> any)?,
 }
 
 local Handlers: HandlerMap = {}
 
-local Shared = script.Parent
-local Remotes: Folder
-local EventDispatcher: RemoteEvent
-local FunctionDispatcher: RemoteFunction
+local EventDispatcher: any = nil
+local FunctionDispatcher: any = nil
+local IS_SERVER: boolean = false
 
 local function runHandler(handler: Callback, funcName: string, ...: any)
 	local ok, err = xpcall(handler, debug.traceback, ...)
@@ -34,87 +39,101 @@ local function runHandler(handler: Callback, funcName: string, ...: any)
 	end
 end
 
--- Safe handler dispatch helper
 local function DispatchHandlers(funcName: string, handlers: { Callback }, ...: any)
 	for _, handler in ipairs(handlers) do
 		task.spawn(runHandler, handler, funcName, ...)
 	end
 end
 
-if IS_SERVER then
-	local existingRemotes = Shared:FindFirstChild("Remotes")
-	if not existingRemotes then
-		Remotes = Instance.new("Folder")
-		Remotes.Name = "Remotes"
-		Remotes.Parent = Shared
+local Network = {} :: NetworkAPI
 
-		EventDispatcher = Instance.new("RemoteEvent")
-		EventDispatcher.Name = "EventDispatcher"
-		EventDispatcher.Parent = Remotes
+function Network._init(deps: NetworkDeps)
+	IS_SERVER = deps.IsServer
+	EventDispatcher = deps.EventDispatcher
+	FunctionDispatcher = deps.FunctionDispatcher
 
-		FunctionDispatcher = Instance.new("RemoteFunction")
-		FunctionDispatcher.Name = "FunctionDispatcher"
-		FunctionDispatcher.Parent = Remotes
+	-- Clear any previously registered handlers (for test re-initialization)
+	table.clear(Handlers)
+
+	if IS_SERVER then
+		EventDispatcher.OnServerEvent:Connect(function(player: Player, funcName: string, ...: any)
+			local handlers = Handlers[funcName]
+			if handlers then
+				DispatchHandlers(funcName, handlers, player, ...)
+			end
+		end)
+
+		FunctionDispatcher.OnServerInvoke = function(player: Player, funcName: string, ...: any): any
+			local handlers = Handlers[funcName]
+			if handlers and handlers[1] then
+				if #handlers > 1 then
+					warn(
+						string.format(
+							"[NetworkServer] Multiple handlers registered for invoke '%s'. Only the first will be called.",
+							funcName
+						)
+					)
+				end
+				return handlers[1](player, ...)
+			end
+			warn(string.format("[NetworkServer] Received invoke '%s' but no handler is registered.", funcName))
+			return nil
+		end
+
+		Network.FireClient = function(_player: Player, funcName: string, ...: any)
+			EventDispatcher:FireClient(_player, funcName, ...)
+		end
+
+		Network.FireAllClients = function(funcName: string, ...: any)
+			EventDispatcher:FireAllClients(funcName, ...)
+		end
+
+		Network.InvokeClient = function(_player: Player, funcName: string, ...: any): any
+			return FunctionDispatcher:InvokeClient(_player, funcName, ...)
+		end
+
+		-- Clear client APIs to prevent leakage between isolated tests
+		Network.FireServer = nil
+		Network.InvokeServer = nil
 	else
-		Remotes = existingRemotes :: Folder
-		EventDispatcher = Remotes:WaitForChild("EventDispatcher") :: RemoteEvent
-		FunctionDispatcher = Remotes:WaitForChild("FunctionDispatcher") :: RemoteFunction
-	end
-
-	EventDispatcher.OnServerEvent:Connect(function(player: Player, funcName: string, ...: any)
-		local handlers = Handlers[funcName]
-		if handlers then
-			DispatchHandlers(funcName, handlers, player, ...)
-		end
-	end)
-
-	FunctionDispatcher.OnServerInvoke = function(player: Player, funcName: string, ...: any): any
-		local handlers = Handlers[funcName]
-		if handlers and handlers[1] then
-			if #handlers > 1 then
-				warn(
-					string.format(
-						"[NetworkServer] Multiple handlers registered for invoke '%s'. Only the first will be called.",
-						funcName
-					)
-				)
+		EventDispatcher.OnClientEvent:Connect(function(funcName: string, ...: any)
+			local handlers = Handlers[funcName]
+			if handlers then
+				DispatchHandlers(funcName, handlers, ...)
 			end
-			return handlers[1](player, ...)
-		end
-		warn(string.format("[NetworkServer] Received invoke '%s' but no handler is registered.", funcName))
-		return nil
-	end
-else
-	Remotes = Shared:WaitForChild("Remotes") :: Folder
-	EventDispatcher = Remotes:WaitForChild("EventDispatcher") :: RemoteEvent
-	FunctionDispatcher = Remotes:WaitForChild("FunctionDispatcher") :: RemoteFunction
+		end)
 
-	EventDispatcher.OnClientEvent:Connect(function(funcName: string, ...: any)
-		local handlers = Handlers[funcName]
-		if handlers then
-			DispatchHandlers(funcName, handlers, ...)
-		end
-	end)
-
-	FunctionDispatcher.OnClientInvoke = function(funcName: string, ...: any): any
-		local handlers = Handlers[funcName]
-		if handlers and handlers[1] then
-			if #handlers > 1 then
-				warn(
-					string.format(
-						"[NetworkClient] Multiple handlers registered for invoke '%s'. Only the first will be called.",
-						funcName
+		FunctionDispatcher.OnClientInvoke = function(funcName: string, ...: any): any
+			local handlers = Handlers[funcName]
+			if handlers and handlers[1] then
+				if #handlers > 1 then
+					warn(
+						string.format(
+							"[NetworkClient] Multiple handlers registered for invoke '%s'. Only the first will be called.",
+							funcName
+						)
 					)
-				)
+				end
+				return handlers[1](...)
 			end
-			return handlers[1](...)
+			warn(string.format("[NetworkClient] Received invoke '%s' but no handler is registered.", funcName))
+			return nil
 		end
-		warn(string.format("[NetworkClient] Received invoke '%s' but no handler is registered.", funcName))
-		return nil
+
+		Network.FireServer = function(funcName: string, ...: any)
+			EventDispatcher:FireServer(funcName, ...)
+		end
+
+		Network.InvokeServer = function(funcName: string, ...: any): any
+			return FunctionDispatcher:InvokeServer(funcName, ...)
+		end
+
+		-- Clear server APIs to prevent leakage between isolated tests
+		Network.FireClient = nil
+		Network.FireAllClients = nil
+		Network.InvokeClient = nil
 	end
 end
-
-local Network = {}
 
 function Network.Register(funcName: string, callback: Callback)
 	if not Handlers[funcName] then
@@ -132,32 +151,9 @@ function Network.Unregister(funcName: string, callback: Callback)
 				break
 			end
 		end
-		-- Clean up empty handler arrays to prevent memory growth
 		if #handlers == 0 then
 			Handlers[funcName] = nil
 		end
-	end
-end
-
-if IS_SERVER then
-	function Network.FireClient(player: Player, funcName: string, ...: any)
-		EventDispatcher:FireClient(player, funcName, ...)
-	end
-
-	function Network.FireAllClients(funcName: string, ...: any)
-		EventDispatcher:FireAllClients(funcName, ...)
-	end
-
-	function Network.InvokeClient(player: Player, funcName: string, ...: any): any
-		return FunctionDispatcher:InvokeClient(player, funcName, ...)
-	end
-else
-	function Network.FireServer(funcName: string, ...: any)
-		EventDispatcher:FireServer(funcName, ...)
-	end
-
-	function Network.InvokeServer(funcName: string, ...: any): any
-		return FunctionDispatcher:InvokeServer(funcName, ...)
 	end
 end
 

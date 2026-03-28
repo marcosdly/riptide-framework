@@ -2,6 +2,10 @@
 -- Riptide/Utilities/Signal.lua
 -- A fast, custom Signal implementation
 
+local task = task
+if not task then
+	task = require("@lune/task")
+end
 export type Connection = {
 	Connected: boolean,
 	Disconnect: (self: Connection) -> (),

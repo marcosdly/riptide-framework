@@ -23,3 +23,20 @@ jobs:
 
       - name: Lint (Selene)
         run: selene src/
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Aftman
+        uses: ok-nick/setup-aftman@v0.4.2
+
+      - name: Install dependencies
+        run: pesde install
+
+      - name: Run tests
+        run: lune run .lune/run_tests.luau

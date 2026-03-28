@@ -13,27 +13,16 @@ Riptide is a lightweight, strictly-typed, and modular Roblox framework. It featu
 
 ## 📦 Installation
 
-> [!WARNING]
-> `v0.5.0` is the last release with first-class Wally support.
-> Starting from the next major cycle, Pesde is the primary package manager.
-
 ### Via Pesde (recommended)
 Add Riptide to your `pesde.toml` dependencies:
 ```toml
 [dependencies]
-Riptide = { name = "riptide/core", version = "^0.5.0", target = "roblox" }
+Riptide = { name = "riptide/core", version = "^0.6.0", target = "roblox" }
 ```
 
 Then install dependencies:
 ```bash
 pesde install
-```
-
-### Via Wally
-Add Riptide to your `wally.toml`:
-```toml
-[dependencies]
-Riptide = "thereplicatedfirst/riptide@^0.5.0"
 ```
 
 ### Manual
@@ -119,7 +108,7 @@ return PlayerState
 
 Riptide automatically creates a single RemoteEvent and RemoteFunction inside its own package under the hood. No `ReplicatedStorage` clutter!
 
-As of `v0.4.0`, network event dispatch uses a reusable trampoline handler in the hot-path to reduce closure allocations during heavy event traffic.
+Network event dispatch uses a reusable trampoline handler in the hot-path to reduce closure allocations during heavy event traffic.
 
 **Client-Side API**
 - `Network.Register(name, callback)`: Listen for server events.
@@ -138,7 +127,7 @@ As of `v0.4.0`, network event dispatch uses a reusable trampoline handler in the
 
 A shared (server & client) system for managing component objects linked to tagged Instances via `CollectionService`.
 
-As of `v0.4.0`, ComponentService startup is idempotent: repeated `_start(...)` calls are ignored to prevent duplicated CollectionService listeners.
+ComponentService startup is idempotent: repeated `_start(...)` calls are ignored to prevent duplicated CollectionService listeners.
 
 Each Component is a `ModuleScript` whose name matches the tag. It must expose a `new(instance)` constructor and optionally a `Destroy(self)` cleanup method.
 
@@ -176,6 +165,20 @@ return Lava
 **API**
 - `ComponentService:Get(instance)`: Get the first component attached to an instance.
 - `ComponentService:Get(instance, tagName)`: Get a specific component by tag name.
+
+## 🧪 Testing
+
+Riptide uses **Lune + frktest** for automated testing. All tests live in `test/lune/` and run outside of Roblox Studio.
+
+```bash
+# Install dependencies (including frktest)
+pesde install
+
+# Run all tests
+lune run .lune/run_tests.luau
+```
+
+The framework uses **Dependency Injection** internally, allowing modules like `Network` and `ComponentService` to be tested with mock objects instead of real Roblox services.
 
 ## 📄 License
 

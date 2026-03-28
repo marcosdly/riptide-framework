@@ -2,6 +2,10 @@
 -- Riptide/Utilities/Async.lua
 -- Wrapper for yielding functions with timeout constraints, retries, and parallel execution
 
+local task = task
+if not task then
+	task = require("@lune/task")
+end
 export type AsyncModule = {
 	Run: (fn: (...any) -> ...any, timeout: number, ...any) -> ...any,
 	Retry: (fn: (...any) -> ...any, maxAttempts: number, delay: number?, ...any) -> ...any,

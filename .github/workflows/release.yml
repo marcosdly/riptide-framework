@@ -26,11 +26,21 @@ jobs:
       - name: Lint (Selene)
         run: selene src/
 
+      - name: Install dependencies
+        run: pesde install
+
+      - name: Run tests
+        run: lune run .lune/run_tests.luau
+
       - name: Strip test files from build
         run: find src -name "*.spec.lua" -delete
 
       - name: Build .rbxm
         run: rojo build default.project.json -o Riptide.rbxm
+
+      - name: Extract clean version
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -41,10 +51,10 @@ jobs:
 
             ### Installation
 
-            **Via Wally:**
+            **Via Pesde (recommended):**
             ```toml
             [dependencies]
-            Riptide = "thereplicatedfirst/riptide@${{ github.ref_name }}"
+            Riptide = { name = "riptide/core", version = "${{ steps.version.outputs.VERSION }}" }
             ```
 
             **Manual:** Download `Riptide.rbxm` below and insert into `ReplicatedStorage`.

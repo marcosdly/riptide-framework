@@ -9,20 +9,31 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 ### Added
 - State machine module (workflow/state orchestration) for gameplay and service-level flows.
 
+## [0.6.0] - 2026-03-28
+
+### Added
+- Dependency Injection for `Network` (`_init(deps)`) and `ComponentService` (`_init(deps)`), enabling mock-based testing outside Roblox.
+- `ModuleLoader` module (`src/shared/ModuleLoader.lua`) — unified loading logic extracted from `ClientInitializer` and `ServerInitializer`.
+- Full test suite using Lune + frktest (`test/lune/`), with mocks for `RemoteEvent`, `RemoteFunction`, and `CollectionService`.
+- Lune added to `aftman.toml` toolchain.
+- `.luaurc` with alias for `@src`.
+- CI now runs automated tests via `lune run` on every push/PR.
+- Guard stubs: `GetController` on server and `GetService` on client now throw clear errors instead of returning `nil`.
+
 ### Changed
-- Package management roadmap includes migration from Wally-only flow to Pesde workspace-compatible flow.
+- `ClientInitializer` and `ServerInitializer` refactored to thin wrappers (~20 lines each) over `ModuleLoader`.
+- Package management fully migrated to Pesde. Wally is no longer supported.
+- Tests migrated from TestEZ (Roblox-only) to frktest (Lune-native).
 
-### Fixed
-- _No entries yet._
-
-### Performance
-- _No entries yet._
-
-### Deprecated
-- _No entries yet._
+### Removed
+- `wally.toml`, `wally.lock`, `.wallyignore` — Wally support is fully dropped.
+- `DevPackages/` (TestEZ dependency).
+- `dev.project.json` (was used for TestEZ in Roblox Studio).
+- All `.spec.lua` files replaced by `test/lune/*.test.luau`.
 
 ### Breaking
-- _No entries yet._ 
+- **Wally users must migrate to Pesde or manual `.rbxm` installation.**
+- Internal `Network` module no longer self-initializes at require-time. This is transparent to end users (handled by `init.lua`), but affects anyone directly requiring `Network.lua` outside of Riptide.
 
 ## [0.5.0] - 2026-03-26
 

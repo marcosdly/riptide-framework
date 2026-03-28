@@ -1,10 +1,8 @@
 std = "roblox"
 
 [rules]
-# TestEZ globals (describe, it, expect, etc.) are injected at runtime
-# so we allow undefined variables only in spec files
-undefined_variable = "allow"
+# Only allow undefined variables in test files (frktest/Lune globals)
+undefined_variable = "warn"
 
 [config]
-# Treat .spec.lua files as test files
 property_access_allow = ["script"]
