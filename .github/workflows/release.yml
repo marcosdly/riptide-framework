@@ -20,6 +20,9 @@ jobs:
       - name: Install Aftman
         uses: ok-nick/setup-aftman@v0.4.2
 
+      - name: Setup Pesde
+        uses: pesde-pkg/setup@main
+
       - name: Check formatting (StyLua)
         run: stylua --check src/
 
