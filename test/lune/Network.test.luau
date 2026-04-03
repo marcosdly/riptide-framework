@@ -1,14 +1,14 @@
 --!strict
 -- Network Test Suite (frktest)
 
-local task = require("@lune/task")
 local frktest = require("../../luau_packages/frktest")
+local task = require("@lune/task")
 local test = frktest.test
 local check = frktest.assert.check
 
-local Network = require("../../src/shared/Network")
 local MockRemoteEvent = require("./mocks/MockRemoteEvent")
 local MockRemoteFunction = require("./mocks/MockRemoteFunction")
+local Network = require("../../src/shared/Network")
 
 return function()
 	test.suite("Network (Server Mode)", function()

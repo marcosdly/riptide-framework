@@ -1,8 +1,8 @@
 --!strict
 -- Async Test Suite (frktest)
 
-local task = require("@lune/task")
 local frktest = require("../../luau_packages/frktest")
+local task = require("@lune/task")
 local test = frktest.test
 local check = frktest.assert.check
 
