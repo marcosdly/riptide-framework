@@ -2,7 +2,7 @@
 # It is not intended for manual editing.
 format = 2
 name = "riptide/core"
-version = "0.7.0"
+version = "0.7.1"
 target = "roblox"
 
 [graph."itsfrank/frktest@0.0.4 luau"]
