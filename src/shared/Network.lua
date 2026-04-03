@@ -83,6 +83,10 @@ function Network._init(deps: NetworkDeps)
 	EventDispatcher = deps.EventDispatcher
 	FunctionDispatcher = deps.FunctionDispatcher
 
+	if next(Handlers) then
+		warn("[Network] _init called with active handlers — clearing existing handlers.")
+	end
+
 	-- Clear any previously registered handlers (for test re-initialization)
 	table.clear(Handlers)
 

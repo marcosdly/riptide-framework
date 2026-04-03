@@ -61,6 +61,22 @@ local function notify(self: any, key: string, value: any)
 	end
 end
 
+local function getClientResolvedValue(self: any, key: string)
+	local playerState = self._clientPlayerState
+	if playerState[key] ~= nil then
+		return playerState[key]
+	end
+	return self._clientGlobalState[key]
+end
+
+local function snapshotResolvedState(self: any): { [string]: any }
+	local resolved = shallowCopy(self._clientGlobalState)
+	for key, value in pairs(self._clientPlayerState) do
+		resolved[key] = value
+	end
+	return resolved
+end
+
 local function applyClientDelta(self: any, payload: any)
 	if type(payload) ~= "table" then
 		return
@@ -68,18 +84,33 @@ local function applyClientDelta(self: any, payload: any)
 
 	local key = payload.key
 	local version = payload.version
+	local scope = payload.scope
 	if type(key) ~= "string" or type(version) ~= "number" then
 		return
 	end
+	if scope ~= nil and scope ~= "global" and scope ~= "player" then
+		return
+	end
+	if scope == nil then
+		scope = "global"
+	end
 
-	local currentVersion = self._clientVersions[key] or 0
+	local versions = if scope == "player" then self._clientPlayerVersions else self._clientGlobalVersions
+	local values = if scope == "player" then self._clientPlayerState else self._clientGlobalState
+
+	local oldResolvedValue = getClientResolvedValue(self, key)
+	local currentVersion = versions[key] or 0
 	if version <= currentVersion then
 		return
 	end
 
-	self._clientVersions[key] = version
-	self._clientState[key] = payload.value
-	notify(self, key, payload.value)
+	versions[key] = version
+	values[key] = payload.value
+
+	local newResolvedValue = getClientResolvedValue(self, key)
+	if oldResolvedValue ~= newResolvedValue then
+		notify(self, key, newResolvedValue)
+	end
 end
 
 local StateReplication = {} :: StateReplicationAPI
@@ -98,8 +129,10 @@ StateReplication._globalVersions = {} :: { [string]: number }
 StateReplication._playerState = setmetatable({}, { __mode = "k" }) :: { [any]: { [string]: any } }
 StateReplication._playerVersions = setmetatable({}, { __mode = "k" }) :: { [any]: { [string]: number } }
 
-StateReplication._clientState = {} :: { [string]: any }
-StateReplication._clientVersions = {} :: { [string]: number }
+StateReplication._clientGlobalState = {} :: { [string]: any }
+StateReplication._clientGlobalVersions = {} :: { [string]: number }
+StateReplication._clientPlayerState = {} :: { [string]: any }
+StateReplication._clientPlayerVersions = {} :: { [string]: number }
 
 StateReplication._subscribers = {} :: { [string]: { Callback } }
 StateReplication._deltaHandler = nil :: ((...any) -> any)?
@@ -121,8 +154,10 @@ function StateReplication:_resetForTests()
 
 	table.clear(self._globalState)
 	table.clear(self._globalVersions)
-	table.clear(self._clientState)
-	table.clear(self._clientVersions)
+	table.clear(self._clientGlobalState)
+	table.clear(self._clientGlobalVersions)
+	table.clear(self._clientPlayerState)
+	table.clear(self._clientPlayerVersions)
 	table.clear(self._subscribers)
 
 	self._playerState = setmetatable({}, { __mode = "k" })
@@ -183,6 +218,7 @@ function StateReplication:Set(key: string, value: any)
 
 	if self._network and self._network.FireAllClients then
 		self._network.FireAllClients(EVENT_DELTA, {
+			scope = "global",
 			key = key,
 			value = value,
 			version = nextVersion,
@@ -215,6 +251,7 @@ function StateReplication:SetForPlayer(player: any, key: string, value: any)
 
 	if self._network and self._network.FireClient then
 		self._network.FireClient(player, EVENT_DELTA, {
+			scope = "player",
 			key = key,
 			value = value,
 			version = nextVersion,
@@ -255,7 +292,7 @@ function StateReplication:Get(key: string, player: any?): any
 		return self._globalState[key]
 	end
 
-	return self._clientState[key]
+	return getClientResolvedValue(self, key)
 end
 
 function StateReplication:Subscribe(key: string, callback: Callback): () -> ()
@@ -272,7 +309,7 @@ function StateReplication:Subscribe(key: string, callback: Callback): () -> ()
 
 	local subscribers = self._subscribers[key]
 	table.insert(subscribers, callback)
-	task.spawn(callback, self:Get(key))
+	callback(self:Get(key))
 
 	return function()
 		local list = self._subscribers[key]
@@ -307,28 +344,32 @@ function StateReplication:RequestSync(): boolean
 		return false
 	end
 
-	local previousState = self._clientState
-	self._clientState = {}
-	self._clientVersions = {}
+	local previousResolvedState = snapshotResolvedState(self)
+	self._clientGlobalState = {}
+	self._clientGlobalVersions = {}
+	self._clientPlayerState = {}
+	self._clientPlayerVersions = {}
 
 	for key, value in pairs(snapshot.global or {}) do
-		self._clientState[key] = value
-		self._clientVersions[key] = ((snapshot.globalVersions or {})[key] or 0)
+		self._clientGlobalState[key] = value
+		self._clientGlobalVersions[key] = ((snapshot.globalVersions or {})[key] or 0)
 	end
 
 	for key, value in pairs(snapshot.player or {}) do
-		self._clientState[key] = value
-		self._clientVersions[key] = ((snapshot.playerVersions or {})[key] or 0)
+		self._clientPlayerState[key] = value
+		self._clientPlayerVersions[key] = ((snapshot.playerVersions or {})[key] or 0)
 	end
 
-	for key, value in pairs(self._clientState) do
-		if previousState[key] ~= value then
+	local currentResolvedState = snapshotResolvedState(self)
+
+	for key, value in pairs(currentResolvedState) do
+		if previousResolvedState[key] ~= value then
 			notify(self, key, value)
 		end
 	end
 
-	for key in pairs(previousState) do
-		if self._clientState[key] == nil then
+	for key in pairs(previousResolvedState) do
+		if currentResolvedState[key] == nil then
 			notify(self, key, nil)
 		end
 	end

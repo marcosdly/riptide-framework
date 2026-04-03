@@ -9,6 +9,20 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 ### Added
 - State machine module (workflow/state orchestration) for gameplay and service-level flows.
 
+## [0.7.1] - 2026-04-03
+
+### Fixed
+- `StateReplication` now tracks client versions per scope (`global` and `player`) to prevent dropped per-player deltas when keys overlap.
+- `StateReplication` snapshot sync now keeps player override + proper fallback to global value when player override is removed.
+- `State:Subscribe` now invokes initial callback synchronously to avoid race conditions immediately after subscription.
+- `Async.Parallel` now has a default timeout safety when timeout is omitted, preventing indefinite hangs by default.
+- `Network._init` now warns before clearing active handlers on re-init.
+
+### Tests
+- Added regression coverage for scope-aware state deltas and player->global fallback behavior.
+- Added explicit scoped delta test (`scope = "global"`) and a dedicated legacy no-scope compatibility test.
+- Added Async.Parallel negative-timeout validation test.
+
 ## [0.7.0] - 2026-04-03
 
 ### Added
@@ -31,6 +45,11 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 ### Fixed
 - `Network._init` is now idempotent for re-initialization scenarios: previous event connections are disconnected before rebind.
 - `Network._init` now clears stale invoke handlers during re-init and validates required deps inputs.
+- `StateReplication` no longer mixes global/player version namespaces on client; version tracking is now scope-aware to prevent dropped per-player updates.
+- `StateReplication` client snapshot now preserves proper player-over-global precedence with correct fallback semantics.
+- `State:Subscribe` now invokes the initial callback synchronously to avoid race conditions right after subscription.
+- `Async.Parallel` now applies a default timeout safety when timeout is omitted, preventing indefinite hangs by default.
+- `Network._init` now warns when re-init clears active handlers.
 - Release workflow no longer runs stale cleanup step for `*.spec.lua` files.
 - Test output warning noise is reduced for expected warning scenarios while preserving runtime warnings in production code paths.
 

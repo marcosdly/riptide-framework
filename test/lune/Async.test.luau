@@ -224,5 +224,18 @@ return function()
 			check.equal(results[1], "fast")
 			check.equal(results[2], nil) -- timed out
 		end)
+
+		test.case("should error on negative timeout", function()
+			local ok, err = pcall(function()
+				Async.Parallel({
+					function()
+						return true
+					end,
+				}, -1)
+			end)
+
+			check.equal(ok, false)
+			check.is_true(string.find(tostring(err), "timeout must be a non%-negative number") ~= nil)
+		end)
 	end)
 end

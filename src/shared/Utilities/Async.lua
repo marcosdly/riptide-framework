@@ -14,6 +14,7 @@ export type AsyncModule = {
 
 local Async = {}
 Async._suppressParallelWarnings = false
+local DEFAULT_PARALLEL_TIMEOUT = 30
 
 --[[
 	Executes a function and waits for it to finish. 
@@ -142,6 +143,15 @@ function Async.Parallel(fns: { () -> any }, timeout: number?): { any }
 	local thread = coroutine.running()
 	local isYielding = false
 	local isDone = false
+	local timeoutSeconds = timeout
+
+	if timeoutSeconds == nil then
+		timeoutSeconds = DEFAULT_PARALLEL_TIMEOUT
+	end
+
+	if timeoutSeconds < 0 then
+		error("[Async.Parallel] timeout must be a non-negative number.", 2)
+	end
 
 	for i, fn in ipairs(fns) do
 		task.spawn(function()
@@ -170,15 +180,13 @@ function Async.Parallel(fns: { () -> any }, timeout: number?): { any }
 
 	isYielding = true
 
-	-- Set up optional timeout
-	if timeout then
-		task.delay(timeout, function()
-			if not isDone then
-				isDone = true
-				task.spawn(thread)
-			end
-		end)
-	end
+	-- Timeout safety (defaulted when omitted)
+	task.delay(timeoutSeconds, function()
+		if not isDone then
+			isDone = true
+			task.spawn(thread)
+		end
+	end)
 
 	coroutine.yield()
 	return results

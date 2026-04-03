@@ -17,7 +17,7 @@ Riptide is a lightweight, strictly-typed, and modular Roblox framework. It featu
 Add Riptide to your `pesde.toml` dependencies:
 ```toml
 [dependencies]
-Riptide = { name = "riptide/core", version = "^0.7.0", target = "roblox" }
+Riptide = { name = "riptide/core", version = "^0.7.1", target = "roblox" }
 ```
 
 Then install dependencies:

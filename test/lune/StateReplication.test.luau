@@ -195,6 +195,7 @@ return function()
 			end)
 
 			network.Trigger(StateReplication.Events.Delta, {
+				scope = "global",
 				key = "coins",
 				value = 500,
 				version = 2,
@@ -206,6 +207,135 @@ return function()
 			check.equal(updates[2], 500)
 
 			unsubscribe()
+		end)
+
+		test.case("should apply per-player delta even when global and player versions match", function()
+			StateReplication:_resetForTests()
+			local network = createNetworkMock()
+			network._snapshotResponse = {
+				global = {
+					coins = 0,
+				},
+				globalVersions = {
+					coins = 1,
+				},
+				player = {
+					coins = 100,
+				},
+				playerVersions = {
+					coins = 1,
+				},
+			}
+
+			StateReplication:_init({
+				IsServer = false,
+				Network = network :: any,
+			})
+
+			network.Trigger(StateReplication.Events.Delta, {
+				scope = "global",
+				key = "coins",
+				value = 50,
+				version = 2,
+			})
+
+			network.Trigger(StateReplication.Events.Delta, {
+				scope = "player",
+				key = "coins",
+				value = 200,
+				version = 2,
+			})
+
+			check.equal(StateReplication:Get("coins"), 200)
+		end)
+
+		test.case("should fall back to global value when player override is removed", function()
+			StateReplication:_resetForTests()
+			local network = createNetworkMock()
+			network._snapshotResponse = {
+				global = {
+					theme = "dark",
+				},
+				globalVersions = {
+					theme = 1,
+				},
+				player = {
+					theme = "custom",
+				},
+				playerVersions = {
+					theme = 1,
+				},
+			}
+
+			StateReplication:_init({
+				IsServer = false,
+				Network = network :: any,
+			})
+
+			network.Trigger(StateReplication.Events.Delta, {
+				scope = "player",
+				key = "theme",
+				value = nil,
+				version = 2,
+			})
+
+			check.equal(StateReplication:Get("theme"), "dark")
+		end)
+
+		test.case("should invoke initial subscribe callback synchronously", function()
+			StateReplication:_resetForTests()
+			local network = createNetworkMock()
+			network._snapshotResponse = {
+				global = {
+					coins = 77,
+				},
+				globalVersions = {
+					coins = 1,
+				},
+				player = {},
+				playerVersions = {},
+			}
+
+			StateReplication:_init({
+				IsServer = false,
+				Network = network :: any,
+			})
+
+			local current = nil
+			local unsubscribe = StateReplication:Subscribe("coins", function(value)
+				current = value
+			end)
+
+			check.equal(current, 77)
+			unsubscribe()
+		end)
+
+		test.case("should support legacy delta payload without scope", function()
+			StateReplication:_resetForTests()
+			local network = createNetworkMock()
+			network._snapshotResponse = {
+				global = {
+					coins = 10,
+				},
+				globalVersions = {
+					coins = 1,
+				},
+				player = {},
+				playerVersions = {},
+			}
+
+			StateReplication:_init({
+				IsServer = false,
+				Network = network :: any,
+			})
+
+			network.Trigger(StateReplication.Events.Delta, {
+				key = "coins",
+				value = 25,
+				version = 2,
+			})
+
+			check.equal(StateReplication:Get("coins"), 25)
 		end)
 	end)
 end
