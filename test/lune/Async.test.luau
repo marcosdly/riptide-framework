@@ -125,6 +125,28 @@ return function()
 			check.equal(a, 10)
 			check.equal(b, 20)
 		end)
+
+		test.case("should error when maxAttempts is less than 1", function()
+			local ok, err = pcall(function()
+				Async.Retry(function()
+					return true
+				end, 0)
+			end)
+
+			check.equal(ok, false)
+			check.is_true(string.find(tostring(err), "maxAttempts must be an integer >= 1") ~= nil)
+		end)
+
+		test.case("should error when delay is negative", function()
+			local ok, err = pcall(function()
+				Async.Retry(function()
+					return true
+				end, 1, -0.1)
+			end)
+
+			check.equal(ok, false)
+			check.is_true(string.find(tostring(err), "delay must be a non%-negative number") ~= nil)
+		end)
 	end)
 
 	test.suite("Async.Parallel", function()
@@ -163,6 +185,10 @@ return function()
 		end)
 
 		test.case("should return nil for failed tasks without crashing", function()
+			local asyncAny = Async :: any
+			local previousSuppress = asyncAny._suppressParallelWarnings
+			asyncAny._suppressParallelWarnings = true
+
 			local results = Async.Parallel({
 				function()
 					return "ok"
@@ -174,6 +200,8 @@ return function()
 					return "also ok"
 				end,
 			})
+
+			asyncAny._suppressParallelWarnings = previousSuppress
 
 			task.wait()
 

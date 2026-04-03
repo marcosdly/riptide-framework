@@ -4,16 +4,20 @@ local CollectionService = game:GetService("CollectionService")
 local RunService = game:GetService("RunService")
 local AsyncModule = require(script.shared.Utilities.Async)
 local ComponentServiceModule = require(script.shared.ComponentService)
+local ModuleLoader = require(script.shared.ModuleLoader)
 local NetworkModule = require(script.shared.Network)
 local SignalModule = require(script.shared.Utilities.Signal)
+local StateReplicationModule = require(script.shared.StateReplication)
 
 local IS_SERVER = RunService:IsServer()
+local REMOTE_WAIT_TIMEOUT = 10
 
 export type Riptide = {
 	Network: NetworkModule.NetworkAPI,
 	Signal: typeof(SignalModule),
 	Async: typeof(AsyncModule),
 	ComponentService: ComponentServiceModule.ComponentServiceAPI,
+	State: StateReplicationModule.StateReplicationAPI,
 	GetModule: (name: string) -> any,
 	GetService: (name: string) -> any,
 	GetController: (name: string) -> any,
@@ -24,12 +28,14 @@ export type Riptide = {
 }
 
 local Riptide = {} :: Riptide
+local isLaunched = false
 
 Riptide._modules = {} :: { [string]: any }
 Riptide._moduleAliases = {} :: { [string]: string | false }
 Riptide.Signal = SignalModule
 Riptide.Async = AsyncModule
 Riptide.ComponentService = ComponentServiceModule
+Riptide.State = StateReplicationModule
 
 function Riptide.GetModule(name: string): any
 	local module = Riptide._modules[name]
@@ -73,6 +79,22 @@ local Remotes: Folder
 local EventDispatcher: RemoteEvent
 local FunctionDispatcher: RemoteFunction
 
+local function waitForChildOrError(parent: Instance, childName: string, timeoutSeconds: number): Instance
+	local child = parent:WaitForChild(childName, timeoutSeconds)
+	if child then
+		return child
+	end
+
+	error(
+		string.format(
+			"🌊 [Riptide] Timed out after %.1fs waiting for '%s' under '%s'.",
+			timeoutSeconds,
+			childName,
+			parent:GetFullName()
+		)
+	)
+end
+
 if IS_SERVER then
 	local existingRemotes = Shared:FindFirstChild("Remotes")
 	if not existingRemotes then
@@ -89,13 +111,13 @@ if IS_SERVER then
 		FunctionDispatcher.Parent = Remotes
 	else
 		Remotes = existingRemotes :: Folder
-		EventDispatcher = Remotes:WaitForChild("EventDispatcher") :: RemoteEvent
-		FunctionDispatcher = Remotes:WaitForChild("FunctionDispatcher") :: RemoteFunction
+		EventDispatcher = waitForChildOrError(Remotes, "EventDispatcher", REMOTE_WAIT_TIMEOUT) :: RemoteEvent
+		FunctionDispatcher = waitForChildOrError(Remotes, "FunctionDispatcher", REMOTE_WAIT_TIMEOUT) :: RemoteFunction
 	end
 else
-	Remotes = Shared:WaitForChild("Remotes") :: Folder
-	EventDispatcher = Remotes:WaitForChild("EventDispatcher") :: RemoteEvent
-	FunctionDispatcher = Remotes:WaitForChild("FunctionDispatcher") :: RemoteFunction
+	Remotes = waitForChildOrError(Shared, "Remotes", REMOTE_WAIT_TIMEOUT) :: Folder
+	EventDispatcher = waitForChildOrError(Remotes, "EventDispatcher", REMOTE_WAIT_TIMEOUT) :: RemoteEvent
+	FunctionDispatcher = waitForChildOrError(Remotes, "FunctionDispatcher", REMOTE_WAIT_TIMEOUT) :: RemoteFunction
 end
 
 NetworkModule._init({
@@ -104,21 +126,40 @@ NetworkModule._init({
 	FunctionDispatcher = FunctionDispatcher,
 })
 
+StateReplicationModule:_init({
+	IsServer = IS_SERVER,
+	Network = NetworkModule,
+})
+
 Riptide.Network = NetworkModule
 
 -- Wire up side-specific initializers and lookup guards
+local function launch(sideName: "Server" | "Client", config: ModuleLoader.Config)
+	if isLaunched then
+		warn(string.format("🌊 [Riptide] %s framework already launched!", sideName))
+		return
+	end
+
+	isLaunched = true
+	ModuleLoader.Launch(sideName, Riptide, config)
+end
+
 if IS_SERVER then
-	local Server = require(script.server.Core.ServerInitializer)
-	Server._RiptideRef = Riptide
-	Riptide.Server = Server
+	Riptide.Server = {
+		Launch = function(config: ModuleLoader.Config)
+			launch("Server", config)
+		end,
+	}
 	Riptide.GetService = Riptide.GetModule
 	Riptide.GetController = function()
 		error("🌊 [Riptide] GetController is not available on the server. Use GetService instead.")
 	end
 else
-	local Client = require(script.client.Core.ClientInitializer)
-	Client._RiptideRef = Riptide
-	Riptide.Client = Client
+	Riptide.Client = {
+		Launch = function(config: ModuleLoader.Config)
+			launch("Client", config)
+		end,
+	}
 	Riptide.GetController = Riptide.GetModule
 	Riptide.GetService = function()
 		error("🌊 [Riptide] GetService is not available on the client. Use GetController instead.")

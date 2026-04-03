@@ -2,6 +2,11 @@
 -- Riptide/shared/ModuleLoader.lua
 -- Unified module loading logic for both Client and Server initializers.
 
+local task = task
+if not task then
+	task = require("@lune/task")
+end
+
 local ModuleLoader = {}
 
 type ModuleFolders = Folder | { Folder }
@@ -123,11 +128,7 @@ function ModuleLoader.Launch(sideName: string, riptideRef: any, config: Config)
 	end
 
 	if not riptideRef then
-		error(
-			"[Riptide] "
-				.. sideName
-				.. "Initializer missing _RiptideRef. Ensure it's launched through the main Riptide module."
-		)
+		error("[Riptide] " .. sideName .. " launcher missing Riptide reference.")
 	end
 
 	print("🌊 [Riptide] " .. sideName .. " Initialization Started...")

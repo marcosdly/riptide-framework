@@ -5,6 +5,7 @@
 local frktest = require("../../luau_packages/frktest")
 local test = frktest.test
 local check = frktest.assert.check
+local task = require("@lune/task")
 
 local ModuleLoader = require("../../src/shared/ModuleLoader")
 
@@ -53,6 +54,89 @@ return function()
 				ModuleLoader.NormalizeFolders("not a folder" :: any, "TestField")
 			end)
 			check.equal(ok, false)
+		end)
+	end)
+
+	test.suite("ModuleLoader.Launch", function()
+		test.case("should run Init before Start", function()
+			local lifecycle = {}
+			local riptide = {
+				_modules = {},
+				_moduleAliases = {},
+				ComponentService = {
+					_start = function() end,
+				},
+			}
+
+			local originalLoadModules = ModuleLoader.LoadModules
+			local originalNormalizeFolders = ModuleLoader.NormalizeFolders
+			ModuleLoader.NormalizeFolders = function(_input: any, fieldName: string)
+				if fieldName == "ModulesFolder" then
+					return { {} :: any }
+				end
+				return {}
+			end
+			ModuleLoader.LoadModules = function(
+				_folder: Folder,
+				_seenModuleScripts: { [ModuleScript]: boolean },
+				_loadedRiptide: any,
+				loadedModules: { { name: string, module: any } },
+				_sideName: string
+			)
+				table.insert(loadedModules, {
+					name = "Core/Foo",
+					module = {
+						Init = function(_self: any, _riptideRef: any)
+							table.insert(lifecycle, "Init")
+						end,
+						Start = function(_self: any, _riptideRef: any)
+							table.insert(lifecycle, "Start")
+						end,
+					},
+				})
+			end
+
+			ModuleLoader.Launch("Server", riptide, {
+				ModulesFolder = {} :: any,
+			})
+
+			task.wait()
+			ModuleLoader.LoadModules = originalLoadModules
+			ModuleLoader.NormalizeFolders = originalNormalizeFolders
+
+			check.equal(lifecycle[1], "Init")
+			check.equal(lifecycle[2], "Start")
+		end)
+
+		test.case("should call ComponentService start when ComponentsFolder is provided", function()
+			local startedWith = nil
+			local riptide = {
+				_modules = {},
+				_moduleAliases = {},
+				ComponentService = {
+					_start = function(_self: any, folder: any)
+						startedWith = folder
+					end,
+				},
+			}
+
+			local componentsFolder = { Name = "Components" }
+
+			local originalLoadModules = ModuleLoader.LoadModules
+			local originalNormalizeFolders = ModuleLoader.NormalizeFolders
+			ModuleLoader.NormalizeFolders = function()
+				return {}
+			end
+			ModuleLoader.LoadModules = function() end
+
+			ModuleLoader.Launch("Client", riptide, {
+				ModulesFolder = {} :: any,
+				ComponentsFolder = componentsFolder :: any,
+			})
+
+			ModuleLoader.LoadModules = originalLoadModules
+			ModuleLoader.NormalizeFolders = originalNormalizeFolders
+			check.equal(startedWith, componentsFolder)
 		end)
 	end)
 end

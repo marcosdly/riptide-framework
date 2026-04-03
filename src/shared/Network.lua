@@ -31,6 +31,14 @@ local Handlers: HandlerMap = {}
 local EventDispatcher: any = nil
 local FunctionDispatcher: any = nil
 local IS_SERVER: boolean = false
+local EventConnection: any = nil
+
+local function disconnectCurrentEventConnection()
+	if EventConnection and type(EventConnection.Disconnect) == "function" then
+		EventConnection:Disconnect()
+	end
+	EventConnection = nil
+end
 
 local function runHandler(handler: Callback, funcName: string, ...: any)
 	local ok, err = xpcall(handler, debug.traceback, ...)
@@ -48,6 +56,29 @@ end
 local Network = {} :: NetworkAPI
 
 function Network._init(deps: NetworkDeps)
+	if not deps then
+		error("[Network] _init requires a deps table.")
+	end
+
+	if type(deps.IsServer) ~= "boolean" then
+		error("[Network] _init requires deps.IsServer as boolean.")
+	end
+
+	if not deps.EventDispatcher then
+		error("[Network] _init requires deps.EventDispatcher.")
+	end
+
+	if not deps.FunctionDispatcher then
+		error("[Network] _init requires deps.FunctionDispatcher.")
+	end
+
+	disconnectCurrentEventConnection()
+
+	if FunctionDispatcher then
+		FunctionDispatcher.OnServerInvoke = nil
+		FunctionDispatcher.OnClientInvoke = nil
+	end
+
 	IS_SERVER = deps.IsServer
 	EventDispatcher = deps.EventDispatcher
 	FunctionDispatcher = deps.FunctionDispatcher
@@ -56,7 +87,7 @@ function Network._init(deps: NetworkDeps)
 	table.clear(Handlers)
 
 	if IS_SERVER then
-		EventDispatcher.OnServerEvent:Connect(function(player: Player, funcName: string, ...: any)
+		EventConnection = EventDispatcher.OnServerEvent:Connect(function(player: Player, funcName: string, ...: any)
 			local handlers = Handlers[funcName]
 			if handlers then
 				DispatchHandlers(funcName, handlers, player, ...)
@@ -96,7 +127,7 @@ function Network._init(deps: NetworkDeps)
 		Network.FireServer = nil
 		Network.InvokeServer = nil
 	else
-		EventDispatcher.OnClientEvent:Connect(function(funcName: string, ...: any)
+		EventConnection = EventDispatcher.OnClientEvent:Connect(function(funcName: string, ...: any)
 			local handlers = Handlers[funcName]
 			if handlers then
 				DispatchHandlers(funcName, handlers, ...)

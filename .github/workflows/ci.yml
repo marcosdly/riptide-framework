@@ -19,10 +19,10 @@ jobs:
         uses: ok-nick/setup-aftman@v0.4.2
 
       - name: Check formatting (StyLua)
-        run: stylua --check src/
+        run: stylua --check src/ test/ .lune/
 
       - name: Lint (Selene)
-        run: selene src/
+        run: selene src/ test/ .lune/
 
   test:
     name: Run Tests

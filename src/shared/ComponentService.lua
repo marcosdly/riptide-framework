@@ -30,6 +30,7 @@ ComponentService._destroyingConns = setmetatable({}, { __mode = "k" }) :: { [Ins
 ComponentService._tagListeners = {} :: { [string]: { added: RBXScriptConnection, removed: RBXScriptConnection } }
 ComponentService._isStarted = false
 ComponentService._collectionService = nil
+ComponentService._suppressWarnings = false
 
 function ComponentService:_init(deps: ComponentServiceDeps)
 	self._collectionService = deps.CollectionService
@@ -45,9 +46,33 @@ function ComponentService:Get(instance: Instance, tagName: string?): any?
 		return components[tagName]
 	end
 
+	local selectedComponent = nil
+	local count = 0
+
 	for _, componentObj in pairs(components) do
-		return componentObj
+		count += 1
+		if count == 1 then
+			selectedComponent = componentObj
+		end
 	end
+
+	if count == 0 then
+		return nil
+	end
+
+	if count == 1 then
+		return selectedComponent
+	end
+
+	if not (self :: any)._suppressWarnings then
+		warn(
+			string.format(
+				"[ComponentService] Get(instance) is ambiguous (%d components found). Pass an explicit tagName.",
+				count
+			)
+		)
+	end
+
 	return nil
 end
 
@@ -109,7 +134,9 @@ end
 
 function ComponentService:_start(componentsFolder: Folder)
 	if self._isStarted then
-		warn("[ComponentService] _start called more than once. Ignoring duplicate start.")
+		if not (self :: any)._suppressWarnings then
+			warn("[ComponentService] _start called more than once. Ignoring duplicate start.")
+		end
 		return
 	end
 

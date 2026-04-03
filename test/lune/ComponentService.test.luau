@@ -53,6 +53,25 @@ return function()
 			cs._registry[mockInstance] = nil
 		end)
 
+		test.case("should return nil for ambiguous Get without tag", function()
+			local cs = ComponentService :: any
+			local previousSuppress = cs._suppressWarnings
+			cs._suppressWarnings = true
+			cs._isStarted = false
+			table.clear(cs._tagListeners)
+
+			local mockInstance = { Name = "AmbiguousPart" }
+			cs._registry[mockInstance] = {
+				TagAlpha = { name = "alpha" },
+				TagBeta = { name = "beta" },
+			}
+
+			check.equal(ComponentService:Get(mockInstance :: any, nil), nil)
+
+			cs._registry[mockInstance] = nil
+			cs._suppressWarnings = previousSuppress
+		end)
+
 		test.case("should return nil for unregistered instance", function()
 			local mockInstance = { Name = "UnknownPart" }
 			local fetched = ComponentService:Get(mockInstance :: any, nil)
@@ -95,6 +114,8 @@ return function()
 
 		test.case("should prevent duplicate _start calls", function()
 			local cs = ComponentService :: any
+			local previousSuppress = cs._suppressWarnings
+			cs._suppressWarnings = true
 			cs._isStarted = true
 
 			-- Second _start should be silently ignored
@@ -108,6 +129,7 @@ return function()
 
 			-- Reset for other tests
 			cs._isStarted = false
+			cs._suppressWarnings = previousSuppress
 		end)
 	end)
 end

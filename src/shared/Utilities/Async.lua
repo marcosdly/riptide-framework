@@ -13,6 +13,7 @@ export type AsyncModule = {
 }
 
 local Async = {}
+Async._suppressParallelWarnings = false
 
 --[[
 	Executes a function and waits for it to finish. 
@@ -94,6 +95,14 @@ end
 	@param ... Arguments to pass to fn on each attempt.
 ]]
 function Async.Retry(fn: (...any) -> ...any, maxAttempts: number, delay: number?, ...: any): ...any
+	if type(maxAttempts) ~= "number" or maxAttempts < 1 or maxAttempts % 1 ~= 0 then
+		error("[Async.Retry] maxAttempts must be an integer >= 1.", 2)
+	end
+
+	if delay ~= nil and (type(delay) ~= "number" or delay < 0) then
+		error("[Async.Retry] delay must be a non-negative number when provided.", 2)
+	end
+
 	local lastError: string = ""
 	local args = { ... }
 
@@ -141,7 +150,9 @@ function Async.Parallel(fns: { () -> any }, timeout: number?): { any }
 				results[i] = result
 			else
 				results[i] = nil
-				warn(string.format("[Async.Parallel] Task %d failed: %s", i, tostring(result)))
+				if not (Async :: any)._suppressParallelWarnings then
+					warn(string.format("[Async.Parallel] Task %d failed: %s", i, tostring(result)))
+				end
 			end
 
 			remaining -= 1

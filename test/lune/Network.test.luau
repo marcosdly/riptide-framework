@@ -130,6 +130,33 @@ return function()
 			Network.Register("CleanupTest", handler)
 			Network.Unregister("CleanupTest", handler)
 		end)
+
+		test.case("should not duplicate event dispatch after re-init", function()
+			local mockEvent = MockRemoteEvent.new()
+			local mockFunction = MockRemoteFunction.new()
+
+			Network._init({
+				IsServer = true,
+				EventDispatcher = mockEvent,
+				FunctionDispatcher = mockFunction,
+			})
+
+			Network._init({
+				IsServer = true,
+				EventDispatcher = mockEvent,
+				FunctionDispatcher = mockFunction,
+			})
+
+			local callCount = 0
+			Network.Register("ReinitEvent", function()
+				callCount += 1
+			end)
+
+			mockEvent.OnServerEvent:Fire("MockPlayer", "ReinitEvent")
+			task.wait()
+
+			check.equal(callCount, 1)
+		end)
 	end)
 
 	test.suite("Network (Client Mode)", function()

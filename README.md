@@ -17,7 +17,7 @@ Riptide is a lightweight, strictly-typed, and modular Roblox framework. It featu
 Add Riptide to your `pesde.toml` dependencies:
 ```toml
 [dependencies]
-Riptide = { name = "riptide/core", version = "^0.6.0", target = "roblox" }
+Riptide = { name = "riptide/core", version = "^0.7.0", target = "roblox" }
 ```
 
 Then install dependencies:
@@ -123,6 +123,52 @@ Network event dispatch uses a reusable trampoline handler in the hot-path to red
 - `Network.FireAllClients(name, ...)`: Broadcast event data to everyone.
 - `Network.InvokeClient(player, name, ...)`: Request data from a client.
 
+## 🗃️ State Replication (`Riptide.State`)
+
+Minimal server-authoritative state replication with two scopes:
+- **Global** state (`Set`) for everyone.
+- **Per-player** state (`SetForPlayer`) for one specific player (example: coins).
+
+**Server API**
+- `State:Set(key, value)`
+- `State:SetForPlayer(player, key, value)`
+- `State:UpdateForPlayer(player, key, updater)`
+- `State:Get(key, player?)`
+
+**Client API**
+- `State:Get(key)`
+- `State:Subscribe(key, callback)`
+
+Client receives an initial snapshot automatically and then delta updates.
+
+### Example (coins only for one player)
+```lua
+-- Server
+local Riptide = require(ReplicatedStorage.Packages.Riptide)
+
+game.Players.PlayerAdded:Connect(function(player)
+    Riptide.State:SetForPlayer(player, "coins", 100)
+end)
+
+-- give +50 coins only to this player
+local function rewardPlayer(player)
+    Riptide.State:UpdateForPlayer(player, "coins", function(oldValue)
+        return (oldValue or 0) + 50
+    end)
+end
+```
+
+```lua
+-- Client
+local Riptide = require(ReplicatedStorage.Packages.Riptide)
+
+local unsubscribe = Riptide.State:Subscribe("coins", function(value)
+    print("My coins:", value)
+end)
+
+-- unsubscribe() when no longer needed
+```
+
 ## 🧩 ComponentService (`Riptide.ComponentService`)
 
 A shared (server & client) system for managing component objects linked to tagged Instances via `CollectionService`.
@@ -163,7 +209,7 @@ return Lava
 ```
 
 **API**
-- `ComponentService:Get(instance)`: Get the first component attached to an instance.
+- `ComponentService:Get(instance)`: Get a component only when exactly one component is attached.
 - `ComponentService:Get(instance, tagName)`: Get a specific component by tag name.
 
 ## 🧪 Testing

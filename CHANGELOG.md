@@ -9,6 +9,42 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 ### Added
 - State machine module (workflow/state orchestration) for gameplay and service-level flows.
 
+## [0.7.0] - 2026-04-03
+
+### Added
+- `StateReplication` module (`Riptide.State`) with server-authoritative global and per-player state sync.
+- `State:UpdateForPlayer(player, key, updater)` for atomic callback-based per-player state updates.
+- Client subscriptions for state keys via `State:Subscribe(key, callback)` with immediate callback and unsubscribe handle.
+- Automatic client snapshot sync (`State:RequestSync()`) plus delta updates over the unified network layer.
+- Public `Riptide.State` API exposed from framework entrypoint.
+- New test suite for StateReplication (`test/lune/StateReplication.test.luau`).
+
+### Changed
+- Launch wiring is centralized in `src/init.lua` via a unified side-aware launcher.
+- `ClientInitializer`/`ServerInitializer` wrapper behavior is now handled directly by `Riptide.Server.Launch` and `Riptide.Client.Launch` in `init.lua`.
+- CI and Release lint/format checks now include `src/`, `test/`, and `.lune/`.
+- Bootstrap remote lookup in `src/init.lua` now fails fast with timeout diagnostics instead of waiting indefinitely.
+- `ComponentService:Get(instance)` is deterministic: when multiple components are attached and no `tagName` is provided, it returns `nil` and warns.
+- `ModuleLoader` now includes Lune task fallback for cross-runtime test stability.
+- Test coverage expanded from 44 to 54 tests (including integration coverage for `ModuleLoader.Launch`, Network re-init behavior, Async input guards, and StateReplication).
+
+### Fixed
+- `Network._init` is now idempotent for re-initialization scenarios: previous event connections are disconnected before rebind.
+- `Network._init` now clears stale invoke handlers during re-init and validates required deps inputs.
+- Release workflow no longer runs stale cleanup step for `*.spec.lua` files.
+- Test output warning noise is reduced for expected warning scenarios while preserving runtime warnings in production code paths.
+
+### Removed
+- Legacy wrapper modules `src/client/Core/ClientInitializer.lua` and `src/server/Core/ServerInitializer.lua`.
+
+### Breaking
+- Internal initializer module files were removed; any direct requires of `ClientInitializer`/`ServerInitializer` must migrate to `Riptide.Server.Launch` / `Riptide.Client.Launch` from `init.lua`.
+- `ComponentService:Get(instance)` no longer returns an arbitrary component when multiple tags are attached; callers must pass explicit `tagName` in ambiguous cases.
+
+### Internal
+- Release workflow includes warning-only version preflight for tag, `pesde.toml`, and `CHANGELOG.md` consistency.
+- `Async.Retry` now validates input arguments (`maxAttempts >= 1`, integer attempts, non-negative `delay`).
+
 ## [0.6.0] - 2026-03-28
 
 ### Added

@@ -24,19 +24,34 @@ jobs:
         uses: pesde-pkg/setup@main
 
       - name: Check formatting (StyLua)
-        run: stylua --check src/
+        run: stylua --check src/ test/ .lune/
 
       - name: Lint (Selene)
-        run: selene src/
+        run: selene src/ test/ .lune/
+
+      - name: Version preflight (warning only)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PESDE_VERSION="$(grep -E '^version\s*=\s*"' pesde.toml | head -n1 | sed -E 's/^version\s*=\s*"([^"]+)".*/\1/')"
+
+          if [[ -z "${PESDE_VERSION}" ]]; then
+            echo "::warning::Could not read version from pesde.toml"
+          elif [[ "${PESDE_VERSION}" != "${TAG_VERSION}" ]]; then
+            echo "::warning::Version mismatch: tag=${TAG_VERSION}, pesde.toml=${PESDE_VERSION}"
+          fi
+
+          if ! grep -Eq "^## \[${TAG_VERSION}\]" CHANGELOG.md; then
+            echo "::warning::CHANGELOG.md does not contain section [${TAG_VERSION}]"
+          fi
 
       - name: Install dependencies
         run: pesde install
 
       - name: Run tests
         run: lune run .lune/run_tests.luau
-
-      - name: Strip test files from build
-        run: find src -name "*.spec.lua" -delete
 
       - name: Build .rbxm
         run: rojo build default.project.json -o Riptide.rbxm
