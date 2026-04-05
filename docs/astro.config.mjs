@@ -4,8 +4,8 @@ import starlight from '@astrojs/starlight';
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://riptide-project.github.io',
-	base: '/framework',
+	site: 'https://riptide-project.github.io/framework/',
+	base: '/framework/',
 	trailingSlash: 'always',
 	integrations: [
 		starlight({
@@ -13,7 +13,7 @@ export default defineConfig({
 			logo: {
 				src: './src/assets/logo.png',
 			},
-			favicon: '/favicon.png',
+			favicon: 'favicon.png',
 			customCss: ['./src/styles/custom.css'],
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/riptide-project/framework' }],
 			sidebar: [

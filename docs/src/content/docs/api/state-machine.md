@@ -127,7 +127,7 @@ Safely destroys the state machine. Calls the `OnExit` hook for the current state
 
 ### `OnStateChanged`
 
-A built-in [Signal](/api/utilities#signal) that fires whenever a successful transition occurs. 
+A built-in [Signal](../utilities#signal) that fires whenever a successful transition occurs. 
 
 **Callback payload:** `(oldStateName: string, newStateName: string)`
 

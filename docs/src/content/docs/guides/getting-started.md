@@ -151,5 +151,5 @@ Congratulations! You've successfully built your first Riptide project.
 ## Next Steps
 
 To learn more about how Riptide structures a full game, check out:
-- **[Project Structure](/guides/project-structure/)** — How to organize your folders.
-- **[Module Lifecycle](/guides/module-lifecycle/)** — How the Load/Init/Start cycle works in detail.
+- **[Project Structure](../project-structure/)** — How to organize your folders.
+- **[Module Lifecycle](../module-lifecycle/)** — How the Load/Init/Start cycle works in detail.
