@@ -1,3 +1,5 @@
+<div align="center">
+
 ```text
     ____  _       __  _     __   
    / __ \(_)___  / /_(_)___/ /__ 
@@ -7,79 +9,40 @@
        /_/                       
 ```
 
-# 🌊 Riptide Framework
+[![Luau](https://img.shields.io/badge/Luau-00A2FF?style=flat-square&logo=lua&logoColor=white)](https://luau-lang.org/)
+[![Roblox](https://img.shields.io/badge/Roblox-111111?style=flat-square&logo=roblox&logoColor=white)](https://roblox.com/)
+[![Pesde](https://img.shields.io/badge/pesde-0.8.0-success?style=flat-square)](https://github.com/pesde-pkg)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![CI](https://github.com/riptide-project/framework/actions/workflows/ci.yml/badge.svg)](https://github.com/riptide-project/framework/actions/workflows/ci.yml)
 
-Riptide is a lightweight, strictly-typed, and modular Roblox framework. It features phased initialization, safe dependency injection, a robust unified networking layer, and a shared ComponentService for managing tagged instances.
+**A lightweight, strictly-typed, and modular framework for Roblox.**
+
+[Read the Documentation 📚](https://riptide-project.github.io/framework) • [Releases](https://github.com/riptide-project/framework/releases)
+
+</div>
+
+## 🌊 Why Riptide?
+
+Riptide was built from the ground up for production Roblox games. It solves the most common architecture problems while remaining invisible, staying out of your way, and scaling elegantly.
+
+- **Deterministic Lifecycle:** Phased initialization (`Init` → `Start`) eliminates race conditions.
+- **Dependency Injection:** Ditch circular `require()` chains. Inject your dependencies safely using canonical paths.
+- **Unified Networking:** One single `RemoteEvent` and `RemoteFunction` handle your entire game's network traffic. Zero `ReplicatedStorage` clutter. Let Riptide multiplex everything.
+- **Strictly Typed:** 100% `--!strict` Luau. Enjoy flawless autocomplete and compile-time safety right out of the box.
+- **Built-in Power:** Comes fully loaded with a robust `StateMachine`, `ComponentService`, and `StateReplication`.
 
 ## 📦 Installation
 
-### Via Pesde (recommended)
-Add Riptide to your `pesde.toml` dependencies:
-```toml
-[dependencies]
-Riptide = { name = "riptide/core", version = "^0.7.1", target = "roblox" }
-```
+Riptide is distributed via **[Pesde](https://github.com/pesde-pkg/pesde)**. Install it directly into your project using the Pesde CLI:
 
-Then install dependencies:
 ```bash
-pesde install
+pesde add riptide/core
 ```
 
-### Manual
-Download `Riptide.rbxm` from the [latest release](https://github.com/riptide-project/framework/releases/latest) and insert it into `ReplicatedStorage`.
+## 🏁 Quick Look
 
-## 🏁 How to Start
+Write clean, modular code with predictable execution phases.
 
-Riptide does not start automatically. You must launch the framework from your own Server and Client entry points.
-
-### Server Initialization (`main.server.lua`)
-```lua
-local Riptide = require(ReplicatedStorage.Packages.Riptide)
-local MyServerModules = ServerScriptService:WaitForChild("MyServerModules")
-local MySharedModules = ReplicatedStorage:WaitForChild("SharedModules")
-local MyComponents = ReplicatedStorage:WaitForChild("Components") -- optional
-
-Riptide.Server.Launch({
-    ModulesFolder = MyServerModules, -- Folder or { Folder, ... }
-    SharedModulesFolder = MySharedModules, -- optional: Folder or { Folder, ... }
-    ComponentsFolder = MyComponents, -- optional
-})
-```
-
-### Client Initialization (`main.client.lua`)
-```lua
-local Riptide = require(ReplicatedStorage.Packages.Riptide)
-local MyClientModules = ReplicatedStorage:WaitForChild("MyClientModules")
-local MySharedModules = ReplicatedStorage:WaitForChild("SharedModules")
-local MyComponents = ReplicatedStorage:WaitForChild("Components") -- optional
-
-Riptide.Client.Launch({
-    ModulesFolder = { MyClientModules }, -- Folder or { Folder, ... }
-    SharedModulesFolder = { MySharedModules }, -- optional: Folder or { Folder, ... }
-    ComponentsFolder = MyComponents, -- optional
-})
-```
-
-## 🚀 Module Lifecycle & Dependency Injection (DI)
-
-Riptide completely eliminates the need for `require()` circles. Any `ModuleScript` inside your designated `ModulesFolder` will be automatically loaded into the Riptide Registry.
-
-> [!NOTE]
-> Services and Controllers are registered by canonical module ID (relative path from `ModulesFolder`, e.g. `Economy/PlayerData`).
-> Short names are still supported as aliases when unique.
-
-If two modules share the same short name, Riptide marks that alias as ambiguous and requires full canonical path lookups.
-
-Examples:
-- `Riptide.GetService("Economy/PlayerData")` ✅ always deterministic
-- `Riptide.GetService("PlayerData")` ✅ only if alias is unique
-- `Riptide.GetService("Data")` ⚠️ returns `nil` when alias is ambiguous
-
-Methods are executed in strict phases:
-1. **`Init(Riptide)`**: Called synchronously. Use this to `GetService` or `GetController` and set up your variables.
-2. **`Start(Riptide)`**: Called asynchronously via `task.spawn`. All modules are fully initialized at this point, so it is safe to interact with them and run game logic.
-
-### Example DI Module
 ```lua
 --!strict
 local RiptidePkg = require(ReplicatedStorage.Packages.Riptide)
@@ -88,10 +51,8 @@ type Riptide = RiptidePkg.Riptide
 local PlayerState = {}
 
 function PlayerState:Init(Riptide: Riptide)
-    -- Easily inject other modules
     self.DataService = Riptide.GetService("DataService")
     
-    -- Listen to the unified Network layer
     Riptide.Network.Register("PlayerJumped", function(player, height)
         print(player.Name .. " jumped " .. height .. " studs!")
     end)
@@ -104,127 +65,11 @@ end
 return PlayerState
 ```
 
-## 📡 Networking (`Riptide.Network`)
+## 📚 Documentation
 
-Riptide automatically creates a single RemoteEvent and RemoteFunction inside its own package under the hood. No `ReplicatedStorage` clutter!
+For complete setup guides, API reference, and examples, visit our official documentation site:
 
-Network event dispatch uses a reusable trampoline handler in the hot-path to reduce closure allocations during heavy event traffic.
-
-**Client-Side API**
-- `Network.Register(name, callback)`: Listen for server events.
-- `Network.Unregister(name, callback)`: Remove a previously registered handler.
-- `Network.FireServer(name, ...)`: Send event data to the server.
-- `Network.InvokeServer(name, ...)`: Request data from the server.
-
-**Server-Side API**
-- `Network.Register(name, callback)`: Listen for client events. Callback automatically receives `player` as the first argument.
-- `Network.Unregister(name, callback)`: Remove a previously registered handler.
-- `Network.FireClient(player, name, ...)`: Send event data to a specific player.
-- `Network.FireAllClients(name, ...)`: Broadcast event data to everyone.
-- `Network.InvokeClient(player, name, ...)`: Request data from a client.
-
-## 🗃️ State Replication (`Riptide.State`)
-
-Minimal server-authoritative state replication with two scopes:
-- **Global** state (`Set`) for everyone.
-- **Per-player** state (`SetForPlayer`) for one specific player (example: coins).
-
-**Server API**
-- `State:Set(key, value)`
-- `State:SetForPlayer(player, key, value)`
-- `State:UpdateForPlayer(player, key, updater)`
-- `State:Get(key, player?)`
-
-**Client API**
-- `State:Get(key)`
-- `State:Subscribe(key, callback)`
-
-Client receives an initial snapshot automatically and then delta updates.
-
-### Example (coins only for one player)
-```lua
--- Server
-local Riptide = require(ReplicatedStorage.Packages.Riptide)
-
-game.Players.PlayerAdded:Connect(function(player)
-    Riptide.State:SetForPlayer(player, "coins", 100)
-end)
-
--- give +50 coins only to this player
-local function rewardPlayer(player)
-    Riptide.State:UpdateForPlayer(player, "coins", function(oldValue)
-        return (oldValue or 0) + 50
-    end)
-end
-```
-
-```lua
--- Client
-local Riptide = require(ReplicatedStorage.Packages.Riptide)
-
-local unsubscribe = Riptide.State:Subscribe("coins", function(value)
-    print("My coins:", value)
-end)
-
--- unsubscribe() when no longer needed
-```
-
-## 🧩 ComponentService (`Riptide.ComponentService`)
-
-A shared (server & client) system for managing component objects linked to tagged Instances via `CollectionService`.
-
-ComponentService startup is idempotent: repeated `_start(...)` calls are ignored to prevent duplicated CollectionService listeners.
-
-Each Component is a `ModuleScript` whose name matches the tag. It must expose a `new(instance)` constructor and optionally a `Destroy(self)` cleanup method.
-
-### Example Component (`Lava.lua`)
-```lua
-local Lava = {}
-Lava.__index = Lava
-
-function Lava.new(instance: BasePart)
-    local self = setmetatable({
-        _instance = instance,
-        _connection = nil :: RBXScriptConnection?,
-    }, Lava)
-
-    self._connection = instance.Touched:Connect(function(hit)
-        local humanoid = hit.Parent and hit.Parent:FindFirstChild("Humanoid")
-        if humanoid then
-            (humanoid :: Humanoid):TakeDamage(10)
-        end
-    end)
-
-    return self
-end
-
-function Lava:Destroy()
-    if self._connection then
-        self._connection:Disconnect()
-        self._connection = nil
-    end
-end
-
-return Lava
-```
-
-**API**
-- `ComponentService:Get(instance)`: Get a component only when exactly one component is attached.
-- `ComponentService:Get(instance, tagName)`: Get a specific component by tag name.
-
-## 🧪 Testing
-
-Riptide uses **Lune + frktest** for automated testing. All tests live in `test/lune/` and run outside of Roblox Studio.
-
-```bash
-# Install dependencies (including frktest)
-pesde install
-
-# Run all tests
-lune run .lune/run_tests.luau
-```
-
-The framework uses **Dependency Injection** internally, allowing modules like `Network` and `ComponentService` to be tested with mock objects instead of real Roblox services.
+**[👉 Go to Riptide Documentation](https://riptide-project.github.io/framework)**
 
 ## 📄 License
 

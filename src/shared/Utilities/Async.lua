@@ -13,7 +13,6 @@ export type AsyncModule = {
 }
 
 local Async = {}
-Async._suppressParallelWarnings = false
 local DEFAULT_PARALLEL_TIMEOUT = 30
 
 --[[
@@ -160,9 +159,6 @@ function Async.Parallel(fns: { () -> any }, timeout: number?): { any }
 				results[i] = result
 			else
 				results[i] = nil
-				if not (Async :: any)._suppressParallelWarnings then
-					warn(string.format("[Async.Parallel] Task %d failed: %s", i, tostring(result)))
-				end
 			end
 
 			remaining -= 1

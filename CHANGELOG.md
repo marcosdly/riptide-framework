@@ -7,7 +7,39 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 ## [Planned]
 
 ### Added
-- State machine module (workflow/state orchestration) for gameplay and service-level flows.
+- (New features arriving soon...)
+
+## [0.8.0] - 2026-04-05
+
+### Added
+- StateMachine module (`Riptide.StateMachine`) for robust state orchestration and lifecycle transitions.
+- Unreliable networking support via `UnreliableRemoteEvent` (`UnreliableFireClient`, `UnreliableFireAllClients`, `UnreliableFireServer`).
+- Network middleware pipeline (`Network.UseMiddleware`) for centralized validation/logging/rate-limit flows.
+- Player Lifecycle Manager with module hooks (`OnPlayerAdded`, `OnPlayerRemoving`) and server-side lifecycle orchestration.
+
+### Documentation
+- Introduced a professional Astro Starlight-based documentation site inside the `docs/` workspace.
+- Deployed a highly polished deep-black theme (`custom.css`) with specific typographic improvements for API syntax highlighting.
+- Added comprehensive Markdown API references for `Network`, `ComponentService`, `ModuleLoader`, `StateReplication`, `PlayerLifecycle`, and `Utilities`.
+- Published extensive user guides including `Getting Started`, `Project Structure`, and `Module Lifecycle` with proper Rojo (`default.project.json`) setups.
+
+### Changed
+- Server launch flow now initializes and starts `Riptide.PlayerLifecycle` automatically.
+- Module loading on server now triggers lifecycle hooks for already loaded modules (`OnPlayerAdded` / `OnPlayerRemoving`).
+- Toolchain migrated from `aftman` to `mise`.
+- **Type Safety**: Properly isolated `RiptideServer` and `RiptideClient` typing in `init.lua` to fix autocompletion conflicts.
+- Framework testing functions (`_resetForTests`, `_suppressWarnings`) removed from production API for improved security and code cleanliness.
+- `ComponentService` now supports connection cleanup via `_stop()` and `UnregisterTag()` to resolve memory leaks during testing/hot-reload.
+- Ensured tests and test utilities are fully excluded from `pesde` and generic Roblox production targets.
+
+### Fixed
+- Server-side `StateReplication` now performs automatic per-player state cleanup on player removal.
+
+### Tests
+- Added `StateMachine` test suite covering state transitions, lifecycle hooks, and signal integration.
+- Added lifecycle coverage with a dedicated `MockPlayers` service and `PlayerLifecycle` test suite.
+- Added `Network` middleware coverage for server/client event and invoke flows.
+- Verified all unit tests pass in Lune environment with zero memory side effects.
 
 ## [0.7.1] - 2026-04-03
 
@@ -70,7 +102,7 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Dependency Injection for `Network` (`_init(deps)`) and `ComponentService` (`_init(deps)`), enabling mock-based testing outside Roblox.
 - `ModuleLoader` module (`src/shared/ModuleLoader.lua`) — unified loading logic extracted from `ClientInitializer` and `ServerInitializer`.
 - Full test suite using Lune + frktest (`test/lune/`), with mocks for `RemoteEvent`, `RemoteFunction`, and `CollectionService`.
-- Lune added to `aftman.toml` toolchain.
+- Lune added to the project toolchain.
 - `.luaurc` with alias for `@src`.
 - CI now runs automated tests via `lune run` on every push/PR.
 - Guard stubs: `GetController` on server and `GetService` on client now throw clear errors instead of returning `nil`.

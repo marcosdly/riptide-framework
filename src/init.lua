@@ -1,31 +1,54 @@
 --!strict
 -- Riptide Framework Entry Point
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local AsyncModule = require(script.shared.Utilities.Async)
 local ComponentServiceModule = require(script.shared.ComponentService)
 local ModuleLoader = require(script.shared.ModuleLoader)
 local NetworkModule = require(script.shared.Network)
+local PlayerLifecycleModule = require(script.shared.PlayerLifecycle)
 local SignalModule = require(script.shared.Utilities.Signal)
+local StateMachineModule = require(script.shared.StateMachine)
 local StateReplicationModule = require(script.shared.StateReplication)
 
 local IS_SERVER = RunService:IsServer()
 local REMOTE_WAIT_TIMEOUT = 10
 
-export type Riptide = {
+export type RiptideLaunch = {
+	Launch: (config: ModuleLoader.Config) -> (),
+}
+
+export type RiptideServer = {
 	Network: NetworkModule.NetworkAPI,
 	Signal: typeof(SignalModule),
 	Async: typeof(AsyncModule),
 	ComponentService: ComponentServiceModule.ComponentServiceAPI,
 	State: StateReplicationModule.StateReplicationAPI,
+	StateMachine: typeof(StateMachineModule),
+	PlayerLifecycle: any,
 	GetModule: (name: string) -> any,
 	GetService: (name: string) -> any,
-	GetController: (name: string) -> any,
-	Server: any,
-	Client: any,
+	Server: RiptideLaunch,
 	_modules: { [string]: any },
 	_moduleAliases: { [string]: string | false },
 }
+
+export type RiptideClient = {
+	Network: NetworkModule.NetworkAPI,
+	Signal: typeof(SignalModule),
+	Async: typeof(AsyncModule),
+	ComponentService: ComponentServiceModule.ComponentServiceAPI,
+	State: StateReplicationModule.StateReplicationAPI,
+	StateMachine: typeof(StateMachineModule),
+	GetModule: (name: string) -> any,
+	GetController: (name: string) -> any,
+	Client: RiptideLaunch,
+	_modules: { [string]: any },
+	_moduleAliases: { [string]: string | false },
+}
+
+export type Riptide = RiptideServer & RiptideClient
 
 local Riptide = {} :: Riptide
 local isLaunched = false
@@ -36,6 +59,8 @@ Riptide.Signal = SignalModule
 Riptide.Async = AsyncModule
 Riptide.ComponentService = ComponentServiceModule
 Riptide.State = StateReplicationModule
+Riptide.StateMachine = StateMachineModule
+Riptide.PlayerLifecycle = PlayerLifecycleModule
 
 function Riptide.GetModule(name: string): any
 	local module = Riptide._modules[name]
@@ -77,6 +102,7 @@ ComponentServiceModule:_init({
 local Shared = script.shared
 local Remotes: Folder
 local EventDispatcher: RemoteEvent
+local UnreliableEventDispatcher: UnreliableRemoteEvent
 local FunctionDispatcher: RemoteFunction
 
 local function waitForChildOrError(parent: Instance, childName: string, timeoutSeconds: number): Instance
@@ -106,23 +132,32 @@ if IS_SERVER then
 		EventDispatcher.Name = "EventDispatcher"
 		EventDispatcher.Parent = Remotes
 
+		UnreliableEventDispatcher = Instance.new("UnreliableRemoteEvent")
+		UnreliableEventDispatcher.Name = "UnreliableEventDispatcher"
+		UnreliableEventDispatcher.Parent = Remotes
+
 		FunctionDispatcher = Instance.new("RemoteFunction")
 		FunctionDispatcher.Name = "FunctionDispatcher"
 		FunctionDispatcher.Parent = Remotes
 	else
 		Remotes = existingRemotes :: Folder
 		EventDispatcher = waitForChildOrError(Remotes, "EventDispatcher", REMOTE_WAIT_TIMEOUT) :: RemoteEvent
+		UnreliableEventDispatcher =
+			waitForChildOrError(Remotes, "UnreliableEventDispatcher", REMOTE_WAIT_TIMEOUT) :: UnreliableRemoteEvent
 		FunctionDispatcher = waitForChildOrError(Remotes, "FunctionDispatcher", REMOTE_WAIT_TIMEOUT) :: RemoteFunction
 	end
 else
 	Remotes = waitForChildOrError(Shared, "Remotes", REMOTE_WAIT_TIMEOUT) :: Folder
 	EventDispatcher = waitForChildOrError(Remotes, "EventDispatcher", REMOTE_WAIT_TIMEOUT) :: RemoteEvent
+	UnreliableEventDispatcher =
+		waitForChildOrError(Remotes, "UnreliableEventDispatcher", REMOTE_WAIT_TIMEOUT) :: UnreliableRemoteEvent
 	FunctionDispatcher = waitForChildOrError(Remotes, "FunctionDispatcher", REMOTE_WAIT_TIMEOUT) :: RemoteFunction
 end
 
 NetworkModule._init({
 	IsServer = IS_SERVER,
 	EventDispatcher = EventDispatcher,
+	UnreliableEventDispatcher = UnreliableEventDispatcher,
 	FunctionDispatcher = FunctionDispatcher,
 })
 
@@ -130,6 +165,13 @@ StateReplicationModule:_init({
 	IsServer = IS_SERVER,
 	Network = NetworkModule,
 })
+
+if IS_SERVER then
+	PlayerLifecycleModule:_init({
+		Players = Players,
+		StateReplication = StateReplicationModule,
+	})
+end
 
 Riptide.Network = NetworkModule
 

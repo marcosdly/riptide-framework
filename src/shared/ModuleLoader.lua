@@ -149,6 +149,10 @@ function ModuleLoader.Launch(sideName: string, riptideRef: any, config: Config)
 		riptideRef.ComponentService:_start(config.ComponentsFolder)
 	end
 
+	if sideName == "Server" and riptideRef.PlayerLifecycle and type(riptideRef.PlayerLifecycle.Start) == "function" then
+		riptideRef.PlayerLifecycle:Start(loadedModules, riptideRef)
+	end
+
 	-- 2. INIT PHASE
 	for _, data in ipairs(loadedModules) do
 		if type(data.module.Init) == "function" then

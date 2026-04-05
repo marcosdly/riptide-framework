@@ -34,7 +34,7 @@ export type StateReplicationAPI = {
 	Get: (self: StateReplicationAPI, key: string, player: any?) -> any,
 	Subscribe: (self: StateReplicationAPI, key: string, callback: Callback) -> () -> (),
 	RequestSync: (self: StateReplicationAPI) -> boolean,
-	_resetForTests: (self: StateReplicationAPI) -> (),
+	_onPlayerRemoving: (self: StateReplicationAPI, player: any) -> (),
 }
 
 local EVENT_DELTA = "__riptide_state_delta"
@@ -138,7 +138,7 @@ StateReplication._subscribers = {} :: { [string]: { Callback } }
 StateReplication._deltaHandler = nil :: ((...any) -> any)?
 StateReplication._snapshotHandler = nil :: ((...any) -> any)?
 
-function StateReplication:_resetForTests()
+local function resetState(self: any)
 	if self._network and self._deltaHandler then
 		self._network.Unregister(EVENT_DELTA, self._deltaHandler)
 	end
@@ -178,7 +178,7 @@ function StateReplication:_init(deps: StateReplicationDeps)
 	end
 
 	if self._initialized then
-		self:_resetForTests()
+		resetState(self)
 	end
 
 	self._isServer = deps.IsServer
@@ -375,6 +375,14 @@ function StateReplication:RequestSync(): boolean
 	end
 
 	return true
+end
+
+function StateReplication:_onPlayerRemoving(player: any)
+	if player == nil then
+		return
+	end
+	self._playerState[player] = nil
+	self._playerVersions[player] = nil
 end
 
 return StateReplication

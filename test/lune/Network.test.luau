@@ -19,6 +19,7 @@ return function()
 			Network._init({
 				IsServer = true,
 				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
 				FunctionDispatcher = mockFunction,
 			})
 
@@ -35,6 +36,7 @@ return function()
 			Network._init({
 				IsServer = true,
 				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
 				FunctionDispatcher = mockFunction,
 			})
 
@@ -57,6 +59,7 @@ return function()
 			Network._init({
 				IsServer = true,
 				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
 				FunctionDispatcher = mockFunction,
 			})
 
@@ -83,6 +86,7 @@ return function()
 			Network._init({
 				IsServer = true,
 				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
 				FunctionDispatcher = mockFunction,
 			})
 
@@ -100,6 +104,7 @@ return function()
 			Network._init({
 				IsServer = true,
 				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
 				FunctionDispatcher = mockFunction,
 			})
 
@@ -119,6 +124,7 @@ return function()
 			Network._init({
 				IsServer = true,
 				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
 				FunctionDispatcher = mockFunction,
 			})
 
@@ -138,12 +144,14 @@ return function()
 			Network._init({
 				IsServer = true,
 				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
 				FunctionDispatcher = mockFunction,
 			})
 
 			Network._init({
 				IsServer = true,
 				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
 				FunctionDispatcher = mockFunction,
 			})
 
@@ -157,6 +165,55 @@ return function()
 
 			check.equal(callCount, 1)
 		end)
+
+		test.case("should apply server middleware to incoming events", function()
+			local mockEvent = MockRemoteEvent.new()
+			local mockFunction = MockRemoteFunction.new()
+
+			Network._init({
+				IsServer = true,
+				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
+				FunctionDispatcher = mockFunction,
+			})
+
+			Network.UseMiddleware("server", function(_player, _funcName, next, value)
+				return next(string.upper(value))
+			end)
+
+			local received = nil
+			Network.Register("MiddlewareEvent", function(_player, value)
+				received = value
+			end)
+
+			mockEvent.OnServerEvent:Fire("MockPlayer", "MiddlewareEvent", "hello")
+			task.wait()
+
+			check.equal(received, "HELLO")
+		end)
+
+		test.case("should allow server middleware to block invoke", function()
+			local mockEvent = MockRemoteEvent.new()
+			local mockFunction = MockRemoteFunction.new()
+
+			Network._init({
+				IsServer = true,
+				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
+				FunctionDispatcher = mockFunction,
+			})
+
+			Network.UseMiddleware("server", function(_player, _funcName, _next, _key)
+				return "blocked"
+			end)
+
+			Network.Register("GuardedInvoke", function(_player, key)
+				return "value_" .. key
+			end)
+
+			local result = mockFunction.OnServerInvoke("MockPlayer", "GuardedInvoke", "score")
+			check.equal(result, "blocked")
+		end)
 	end)
 
 	test.suite("Network (Client Mode)", function()
@@ -167,6 +224,7 @@ return function()
 			Network._init({
 				IsServer = false,
 				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
 				FunctionDispatcher = mockFunction,
 			})
 
@@ -186,6 +244,7 @@ return function()
 			Network._init({
 				IsServer = false,
 				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
 				FunctionDispatcher = mockFunction,
 			})
 
@@ -208,6 +267,7 @@ return function()
 			Network._init({
 				IsServer = false,
 				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
 				FunctionDispatcher = mockFunction,
 			})
 
@@ -215,6 +275,32 @@ return function()
 			api.FireServer("JumpEvent", 42)
 
 			check.equal(#mockEvent._firedServer, 1)
+		end)
+
+		test.case("should apply client middleware to incoming events", function()
+			local mockEvent = MockRemoteEvent.new()
+			local mockFunction = MockRemoteFunction.new()
+
+			Network._init({
+				IsServer = false,
+				EventDispatcher = mockEvent,
+				UnreliableEventDispatcher = mockEvent,
+				FunctionDispatcher = mockFunction,
+			})
+
+			Network.UseMiddleware("client", function(_funcName, next, value)
+				return next(value .. "_processed")
+			end)
+
+			local received = nil
+			Network.Register("FromServer", function(value)
+				received = value
+			end)
+
+			mockEvent.OnClientEvent:Fire("FromServer", "payload")
+			task.wait()
+
+			check.equal(received, "payload_processed")
 		end)
 	end)
 end

@@ -1,0 +1,37 @@
+---
+title: Riptide Framework
+description: A lightweight, strictly-typed, and modular framework for Roblox.
+template: splash
+hero:
+  tagline: Lightweight. Strictly typed. Built for production Roblox games.
+  image:
+    file: ../../assets/logo.png
+  actions:
+    - text: Getting Started
+      link: /guides/getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: API Reference
+      link: /api/network/
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+## Why Riptide?
+
+<CardGrid stagger>
+	<Card title="Phased Initialization" icon="rocket">
+		Deterministic **Load → Init → Start** lifecycle eliminates race conditions. Dependency injection via `GetService` / `GetController` — no more circular `require()` chains.
+	</Card>
+	<Card title="Unified Networking" icon="document">
+		Single `RemoteEvent` + `RemoteFunction` pair with named dispatch, middleware pipelines, and zero `ReplicatedStorage` clutter.
+	</Card>
+	<Card title="Strictly Typed" icon="setting">
+		`--!strict` Luau throughout. Fully typed API surface with exported types for autocomplete and compile-time safety.
+	</Card>
+	<Card title="State Replication" icon="open-book">
+		Server-authoritative global and per-player state with automatic snapshot sync, delta updates, and reactive `Subscribe` on clients.
+	</Card>
+</CardGrid>

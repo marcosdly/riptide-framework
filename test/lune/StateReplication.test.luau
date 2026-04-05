@@ -80,7 +80,6 @@ end
 return function()
 	test.suite("StateReplication (Server)", function()
 		test.case("should set global state and broadcast delta", function()
-			StateReplication:_resetForTests()
 			local network = createNetworkMock()
 
 			StateReplication:_init({
@@ -98,7 +97,6 @@ return function()
 		end)
 
 		test.case("should set per-player state and only target that player", function()
-			StateReplication:_resetForTests()
 			local network = createNetworkMock()
 			local mockPlayer = { UserId = 1, Name = "Player1" }
 
@@ -119,7 +117,6 @@ return function()
 		end)
 
 		test.case("should update per-player state via callback", function()
-			StateReplication:_resetForTests()
 			local network = createNetworkMock()
 			local mockPlayer = { UserId = 1, Name = "Player1" }
 
@@ -138,11 +135,27 @@ return function()
 			check.equal(#network._firedClient, 2)
 			check.equal(network._firedClient[2].payload.value, 110)
 		end)
+
+		test.case("should cleanup per-player state when player leaves", function()
+			local network = createNetworkMock()
+			local mockPlayer = { UserId = 1, Name = "Player1" }
+
+			StateReplication:_init({
+				IsServer = true,
+				Network = network :: any,
+			})
+
+			StateReplication:Set("coins", 50)
+			StateReplication:SetForPlayer(mockPlayer, "coins", 200)
+			check.equal(StateReplication:Get("coins", mockPlayer), 200)
+
+			StateReplication:_onPlayerRemoving(mockPlayer)
+			check.equal(StateReplication:Get("coins", mockPlayer), 50)
+		end)
 	end)
 
 	test.suite("StateReplication (Client)", function()
 		test.case("should request snapshot and merge global + player state", function()
-			StateReplication:_resetForTests()
 			local network = createNetworkMock()
 			network._snapshotResponse = {
 				global = {
@@ -171,7 +184,6 @@ return function()
 		end)
 
 		test.case("should notify subscribers on delta updates", function()
-			StateReplication:_resetForTests()
 			local network = createNetworkMock()
 			network._snapshotResponse = {
 				global = {
@@ -210,7 +222,6 @@ return function()
 		end)
 
 		test.case("should apply per-player delta even when global and player versions match", function()
-			StateReplication:_resetForTests()
 			local network = createNetworkMock()
 			network._snapshotResponse = {
 				global = {
@@ -250,7 +261,6 @@ return function()
 		end)
 
 		test.case("should fall back to global value when player override is removed", function()
-			StateReplication:_resetForTests()
 			local network = createNetworkMock()
 			network._snapshotResponse = {
 				global = {
@@ -283,7 +293,6 @@ return function()
 		end)
 
 		test.case("should invoke initial subscribe callback synchronously", function()
-			StateReplication:_resetForTests()
 			local network = createNetworkMock()
 			network._snapshotResponse = {
 				global = {
@@ -311,7 +320,6 @@ return function()
 		end)
 
 		test.case("should support legacy delta payload without scope", function()
-			StateReplication:_resetForTests()
 			local network = createNetworkMock()
 			network._snapshotResponse = {
 				global = {

@@ -21,6 +21,8 @@ export type ComponentServiceAPI = {
 	Get: (self: ComponentServiceAPI, instance: Instance, tagName: string?) -> any?,
 	_init: (self: ComponentServiceAPI, deps: ComponentServiceDeps) -> (),
 	_start: (self: ComponentServiceAPI, componentsFolder: Folder) -> (),
+	_stop: (self: ComponentServiceAPI) -> (),
+	UnregisterTag: (self: ComponentServiceAPI, tagName: string) -> (),
 }
 
 local ComponentService = {} :: ComponentServiceAPI
@@ -30,7 +32,6 @@ ComponentService._destroyingConns = setmetatable({}, { __mode = "k" }) :: { [Ins
 ComponentService._tagListeners = {} :: { [string]: { added: RBXScriptConnection, removed: RBXScriptConnection } }
 ComponentService._isStarted = false
 ComponentService._collectionService = nil
-ComponentService._suppressWarnings = false
 
 function ComponentService:_init(deps: ComponentServiceDeps)
 	self._collectionService = deps.CollectionService
@@ -64,14 +65,12 @@ function ComponentService:Get(instance: Instance, tagName: string?): any?
 		return selectedComponent
 	end
 
-	if not (self :: any)._suppressWarnings then
-		warn(
-			string.format(
-				"[ComponentService] Get(instance) is ambiguous (%d components found). Pass an explicit tagName.",
-				count
-			)
+	warn(
+		string.format(
+			"[ComponentService] Get(instance) is ambiguous (%d components found). Pass an explicit tagName.",
+			count
 		)
-	end
+	)
 
 	return nil
 end
@@ -134,9 +133,7 @@ end
 
 function ComponentService:_start(componentsFolder: Folder)
 	if self._isStarted then
-		if not (self :: any)._suppressWarnings then
-			warn("[ComponentService] _start called more than once. Ignoring duplicate start.")
-		end
+		warn("[ComponentService] _start called more than once. Ignoring duplicate start.")
 		return
 	end
 
@@ -193,6 +190,28 @@ function ComponentService:_start(componentsFolder: Folder)
 			end
 		end
 	end
+end
+
+function ComponentService:UnregisterTag(tagName: string)
+	local listeners = self._tagListeners[tagName]
+	if listeners then
+		listeners.added:Disconnect()
+		listeners.removed:Disconnect()
+		self._tagListeners[tagName] = nil
+	end
+
+	for instance, components in pairs(self._registry) do
+		if components[tagName] then
+			CleanupComponent(self, instance, tagName)
+		end
+	end
+end
+
+function ComponentService:_stop()
+	for tagName in pairs(self._tagListeners) do
+		self:UnregisterTag(tagName)
+	end
+	self._isStarted = false
 end
 
 return ComponentService

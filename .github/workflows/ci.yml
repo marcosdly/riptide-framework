@@ -15,8 +15,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Aftman
-        uses: ok-nick/setup-aftman@v0.4.2
+      - name: Setup mise
+        uses: jdx/mise-action@v3
+        with:
+          install: true
 
       - name: Check formatting (StyLua)
         run: stylua --check src/ test/ .lune/
@@ -32,8 +34,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Aftman
-        uses: ok-nick/setup-aftman@v0.4.2
+      - name: Setup mise
+        uses: jdx/mise-action@v3
+        with:
+          install: true
 
       - name: Setup Pesde
         uses: pesde-pkg/setup@main

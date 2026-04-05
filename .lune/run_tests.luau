@@ -17,6 +17,8 @@ require("../test/lune/ComponentService.test")()
 require("../test/lune/ModuleLoader.test")()
 require("../test/lune/Riptide.test")()
 require("../test/lune/StateReplication.test")()
+require("../test/lune/PlayerLifecycle.test")()
+require("../test/lune/StateMachine.test")()
 
 local success = frktest.run()
 

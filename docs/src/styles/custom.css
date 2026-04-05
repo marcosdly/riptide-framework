@@ -1,0 +1,55 @@
+/* ── Riptide Docs — Custom Theme ── */
+
+:root[data-theme='dark'] {
+  --sl-color-bg: #030407;
+  --sl-color-bg-nav: #030407;
+  --sl-color-bg-sidebar: #05070d;
+
+  --sl-color-text-accent: #60a5fa;
+  --sl-color-hairline: #1e293b;
+
+  --sl-color-accent-low: #0c1a3a;
+  --sl-color-accent: #3b82f6;
+  --sl-color-accent-high: #93c5fd;
+}
+
+:root[data-theme='light'] {
+  --sl-color-accent-low: #dbeafe;
+  --sl-color-accent: #2563eb;
+  --sl-color-accent-high: #1e3a5f;
+}
+
+/* ── Inline code badges for method signatures ── */
+:not(pre) > code {
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+  font-size: 0.88em;
+}
+
+/* ── Smooth scrolling ── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ── Table styling ── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  font-weight: 600;
+  border-bottom: 2px solid var(--sl-color-hairline);
+  padding: 0.6em 0.8em;
+}
+
+td {
+  padding: 0.5em 0.8em;
+  border-bottom: 1px solid var(--sl-color-hairline);
+}
+
+/* ── Blockquote accent ── */
+blockquote {
+  border-left: 3px solid var(--sl-color-accent);
+}
