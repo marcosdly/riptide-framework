@@ -4,7 +4,10 @@
 -- Since init.lua requires Roblox runtime, we test the GetModule logic directly
 -- by requiring just the shared modules and mocking the registry.
 
-local frktest = require("../../luau_packages/frktest")
+local Env = _G.TestEnv or require(script.Parent.TestEnv)
+local task = Env.task
+
+local frktest = Env.frktest
 local test = frktest.test
 local check = frktest.assert.check
 

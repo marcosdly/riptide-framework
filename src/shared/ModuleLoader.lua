@@ -175,7 +175,7 @@ function ModuleLoader.Launch(sideName: string, riptideRef: any, config: Config)
 		end
 	end
 
-	print("🌊 [Riptide] ✅ " .. sideName .. " Ready.")
+	print("🌊 [Riptide] ✅ " .. sideName .. " Start Phase Dispatched.")
 end
 
 return ModuleLoader

@@ -1,13 +1,15 @@
 --!strict
 -- StateMachine Test Suite (frktest)
 
-local frktest = require("../../luau_packages/frktest")
-local task = require("@lune/task")
+local Env = _G.TestEnv or require(script.Parent.TestEnv)
+local task = Env.task
+
+local frktest = Env.frktest
 local test = frktest.test
 local check = frktest.assert.check
 local req = frktest.assert.require
 
-local StateMachine = require("../../src/shared/StateMachine")
+local StateMachine = Env.RiptideShared.StateMachine
 
 return function()
 	test.suite("StateMachine", function()

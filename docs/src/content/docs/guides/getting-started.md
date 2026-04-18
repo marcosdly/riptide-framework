@@ -9,15 +9,24 @@ Welcome to Riptide! This guide will walk you through installing the framework, w
 
 ### Via Pesde (Recommended)
 
-Riptide is distributed via [pesde](https://github.com/pesde-pkg/pesde). To install it, run the following command in your terminal:
+Riptide is formally distributed via [pesde](https://github.com/pesde-pkg/pesde). To install it, run the following command in your terminal:
 
 ```bash
 pesde add riptide/core
 ```
 
-### Manual Installation
+### Via Wally
 
-If you prefer not to use a package manager, download `Riptide.rbxm` from the [latest GitHub release](https://github.com/riptide-project/framework/releases/latest) and place it inside `ReplicatedStorage.Packages`.
+If you strictly prefer Wally, add this to your `wally.toml`:
+
+```toml
+[dependencies]
+Riptide = "riptide/core@0.8.1"
+```
+
+### Manual Installation (.rbxm)
+
+If you prefer not to use a package manager, download `Riptide.rbxm` from the [latest GitHub release](https://github.com/riptide-project/framework/releases/latest) and explicitly place it inside `ReplicatedStorage.Packages`.
 
 ### Riptide CLI (Under Development)
 

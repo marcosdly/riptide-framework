@@ -1,0 +1,9 @@
+[package]
+name = "riptide/core"
+version = "0.8.1"
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "shared"
+description = "A lightweight and professional framework for Roblox."
+license = "MIT"
+authors = ["Riptide Development Group"]
+exclude = ["docs/**", "test/**", "luau_packages/**", ".github/**"]

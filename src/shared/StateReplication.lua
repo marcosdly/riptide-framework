@@ -134,6 +134,9 @@ StateReplication._clientGlobalVersions = {} :: { [string]: number }
 StateReplication._clientPlayerState = {} :: { [string]: any }
 StateReplication._clientPlayerVersions = {} :: { [string]: number }
 
+StateReplication._syncYielding = false
+StateReplication._syncBuffer = {} :: { any }
+
 StateReplication._subscribers = {} :: { [string]: { Callback } }
 StateReplication._deltaHandler = nil :: ((...any) -> any)?
 StateReplication._snapshotHandler = nil :: ((...any) -> any)?
@@ -159,6 +162,8 @@ local function resetState(self: any)
 	table.clear(self._clientPlayerState)
 	table.clear(self._clientPlayerVersions)
 	table.clear(self._subscribers)
+	table.clear(self._syncBuffer)
+	self._syncYielding = false
 
 	self._playerState = setmetatable({}, { __mode = "k" })
 	self._playerVersions = setmetatable({}, { __mode = "k" })
@@ -199,7 +204,11 @@ function StateReplication:_init(deps: StateReplicationDeps)
 		self._network.Register(EVENT_SNAPSHOT, self._snapshotHandler)
 	else
 		self._deltaHandler = function(payload: any)
-			applyClientDelta(self, payload)
+			if self._syncYielding then
+				table.insert(self._syncBuffer, payload)
+			else
+				applyClientDelta(self, payload)
+			end
 		end
 		self._network.Register(EVENT_DELTA, self._deltaHandler)
 		self:RequestSync()
@@ -296,6 +305,9 @@ function StateReplication:Get(key: string, player: any?): any
 end
 
 function StateReplication:Subscribe(key: string, callback: Callback): () -> ()
+	if self._isServer then
+		error("[StateReplication] Subscribe is a client-only method.", 2)
+	end
 	if type(key) ~= "string" then
 		error("[StateReplication] Subscribe requires key as string.", 2)
 	end
@@ -339,7 +351,10 @@ function StateReplication:RequestSync(): boolean
 		return false
 	end
 
+	self._syncYielding = true
 	local ok, snapshot = pcall(self._network.InvokeServer, EVENT_SNAPSHOT)
+	self._syncYielding = false
+
 	if not ok or type(snapshot) ~= "table" then
 		return false
 	end
@@ -373,6 +388,11 @@ function StateReplication:RequestSync(): boolean
 			notify(self, key, nil)
 		end
 	end
+
+	for _, bufferedPayload in ipairs(self._syncBuffer) do
+		applyClientDelta(self, bufferedPayload)
+	end
+	table.clear(self._syncBuffer)
 
 	return true
 end

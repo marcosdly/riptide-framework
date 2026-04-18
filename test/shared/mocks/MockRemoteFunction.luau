@@ -1,6 +1,12 @@
 --!strict
 -- Mock RemoteFunction for Lune testing
 -- Simulates Roblox RemoteFunction
+--!strict
+local isRoblox = typeof(game) ~= "nil"
+local task = task
+if not isRoblox then pcall(function() task = require("@lune/task") end) end
+local Signal = isRoblox and require(game.ReplicatedStorage.Riptide.shared.Utilities.Signal) or require("../../../src/shared/Utilities/Signal")
+
 
 export type MockRemoteFunction = {
 	OnServerInvoke: ((...any) -> any)?,

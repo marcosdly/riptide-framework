@@ -12,6 +12,7 @@ export type Connection = {
 	_signal: Signal?,
 	_fn: ((...any) -> ())?,
 	_next: Connection?,
+	_thread: thread?,
 }
 
 export type Signal = {
@@ -33,6 +34,7 @@ function Connection.new(signal: Signal, fn: (...any) -> ()): Connection
 		_signal = signal,
 		_fn = fn,
 		_next = nil :: Connection?,
+		_thread = nil :: thread?,
 	}, Connection)
 	return (self :: any) :: Connection
 end
@@ -112,6 +114,7 @@ function Signal:Wait(): ...any
 		connection:Disconnect()
 		task.spawn(thread, ...)
 	end)
+	connection._thread = thread
 
 	return coroutine.yield()
 end
@@ -120,10 +123,14 @@ function Signal:DisconnectAll()
 	local curr = self._head
 	while curr do
 		local nextConn = curr._next
+		if curr._thread then
+			task.spawn(curr._thread)
+		end
 		curr.Connected = false
 		curr._signal = nil
 		curr._fn = nil
 		curr._next = nil
+		curr._thread = nil
 		curr = nextConn
 	end
 	(self :: any)._head = nil

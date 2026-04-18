@@ -1,14 +1,16 @@
 --!strict
 -- Network Test Suite (frktest)
 
-local frktest = require("../../luau_packages/frktest")
-local task = require("@lune/task")
+local Env = _G.TestEnv or require(script.Parent.TestEnv)
+local task = Env.task
+
+local frktest = Env.frktest
 local test = frktest.test
 local check = frktest.assert.check
 
-local MockRemoteEvent = require("./mocks/MockRemoteEvent")
-local MockRemoteFunction = require("./mocks/MockRemoteFunction")
-local Network = require("../../src/shared/Network")
+local MockRemoteEvent = Env.Mocks.MockRemoteEvent
+local MockRemoteFunction = Env.Mocks.MockRemoteFunction
+local Network = Env.RiptideShared.Network
 
 return function()
 	test.suite("Network (Server Mode)", function()

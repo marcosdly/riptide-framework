@@ -1,12 +1,14 @@
 --!strict
 -- StateReplication Test Suite (frktest)
 
-local frktest = require("../../luau_packages/frktest")
-local task = require("@lune/task")
+local Env = _G.TestEnv or require(script.Parent.TestEnv)
+local task = Env.task
+
+local frktest = Env.frktest
 local test = frktest.test
 local check = frktest.assert.check
 
-local StateReplication = require("../../src/shared/StateReplication")
+local StateReplication = Env.RiptideShared.StateReplication
 
 local function createNetworkMock()
 	local handlers = {} :: { [string]: { (...any) -> any } }

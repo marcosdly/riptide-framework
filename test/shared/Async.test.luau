@@ -1,12 +1,14 @@
 --!strict
 -- Async Test Suite (frktest)
 
-local frktest = require("../../luau_packages/frktest")
-local task = require("@lune/task")
+local Env = _G.TestEnv or require(script.Parent.TestEnv)
+local task = Env.task
+
+local frktest = Env.frktest
 local test = frktest.test
 local check = frktest.assert.check
 
-local Async = require("../../src/shared/Utilities/Async")
+local Async = Env.RiptideShared.Async
 
 return function()
 	test.suite("Async.Run", function()

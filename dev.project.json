@@ -1,0 +1,33 @@
+{
+  "name": "Riptide-Dev",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Riptide": {
+        "$path": "src"
+      },
+      "Packages": {
+        "$path": "luau_packages"
+      },
+      "SharedTests": {
+        "$path": "test/shared"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "ServerTests": {
+        "$path": "test/server"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "ClientTests": {
+          "$path": "test/client"
+        }
+      }
+    }
+  }
+}

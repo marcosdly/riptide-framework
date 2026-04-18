@@ -2,12 +2,14 @@
 -- ModuleLoader Test Suite (frktest)
 -- Tests the shared module loading logic extracted from Initializers.
 
-local frktest = require("../../luau_packages/frktest")
+local Env = _G.TestEnv or require(script.Parent.TestEnv)
+local task = Env.task
+
+local frktest = Env.frktest
 local test = frktest.test
 local check = frktest.assert.check
-local task = require("@lune/task")
 
-local ModuleLoader = require("../../src/shared/ModuleLoader")
+local ModuleLoader = Env.RiptideShared.ModuleLoader
 
 return function()
 	test.suite("ModuleLoader.GetCanonicalModuleId", function()

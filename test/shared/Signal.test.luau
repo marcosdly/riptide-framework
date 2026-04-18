@@ -1,13 +1,15 @@
 --!strict
 -- Signal Test Suite (frktest)
 
-local frktest = require("../../luau_packages/frktest")
-local task = require("@lune/task")
+local Env = _G.TestEnv or require(script.Parent.TestEnv)
+local task = Env.task
+
+local frktest = Env.frktest
 local test = frktest.test
 local check = frktest.assert.check
 local req = frktest.assert.require
 
-local Signal = require("../../src/shared/Utilities/Signal")
+local Signal = Env.RiptideShared.Signal
 
 return function()
 	test.suite("Signal", function()

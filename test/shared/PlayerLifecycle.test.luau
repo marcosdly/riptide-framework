@@ -1,12 +1,15 @@
 --!strict
 -- PlayerLifecycle Test Suite (frktest)
 
-local frktest = require("../../luau_packages/frktest")
+local Env = _G.TestEnv or require(script.Parent.TestEnv)
+local task = Env.task
+
+local frktest = Env.frktest
 local test = frktest.test
 local check = frktest.assert.check
 
-local MockPlayers = require("./mocks/MockPlayers")
-local PlayerLifecycle = require("../../src/shared/PlayerLifecycle")
+local MockPlayers = Env.Mocks.MockPlayers
+local PlayerLifecycle = Env.RiptideShared.PlayerLifecycle
 
 return function()
 	test.suite("PlayerLifecycle", function()

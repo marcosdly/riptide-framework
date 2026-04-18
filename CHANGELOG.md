@@ -9,6 +9,22 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 ### Added
 - (New features arriving soon...)
 
+## [0.8.1] - 2026-04-18
+
+### Changed
+- QA Testing Framework upgraded to a **Hybrid Testing Architecture**: maintaining `Lune` CLI compatability for instant CI unit testing, while now seamlessly integrating into the `Roblox DataModel` for live client/server testing.
+- Segmented test environments: created independent test runners for Server (`RunServerTests.server.luau`) and Client (`RunClientTests.client.luau`), alongside the Lune runner.
+- `dev.project.json` reinstated to support distinct `ClientTests`, `ServerTests`, and `SharedTests` workspace hierarchies for Pesde dependencies.
+
+### Fixed
+- Fixed a core architecture bug in `Network._init` where re-initializing the Network module on the Server would trigger restricted environment errors while referencing `OnClientInvoke`.
+- Eliminated a native Engine *Replication Thread Starvation* issue during automated test runs: the server runner now actively yields before heavy test execution, guaranteeing that `Remotes` properly replicate to the client context.
+- Fixed an obsolete API assertion inside the System Integration client test targeting `ComponentService.Register`.
+
+### Tests
+- Expanded integration coverage directly inside the Roblox DataModel.
+- Added comprehensive Client and Server System Integration suites covering cross-boundary modules: `Signal`, `Async`, `StateMachine`, `ComponentService`, and `StateReplication`.
+
 ## [0.8.0] - 2026-04-05
 
 ### Added

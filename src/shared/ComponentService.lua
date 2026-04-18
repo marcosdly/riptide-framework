@@ -81,10 +81,10 @@ local function CleanupComponent(self: ComponentServiceAPI, instance: Instance, t
 	if components then
 		local componentObj = components[tagName]
 		if componentObj then
+			components[tagName] = nil
 			if type(componentObj.Destroy) == "function" then
 				pcall(componentObj.Destroy, componentObj)
 			end
-			components[tagName] = nil
 		end
 	end
 

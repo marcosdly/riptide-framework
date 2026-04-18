@@ -76,10 +76,10 @@ function PlayerLifecycle:Start(modules: { { name: string, module: any } }, ripti
 	table.insert(
 		self._connections,
 		self._players.PlayerRemoving:Connect(function(player: any)
+			callHook(modules, "OnPlayerRemoving", riptideRef, player)
 			if self._stateReplication and type(self._stateReplication._onPlayerRemoving) == "function" then
 				self._stateReplication:_onPlayerRemoving(player)
 			end
-			callHook(modules, "OnPlayerRemoving", riptideRef, player)
 		end)
 	)
 end

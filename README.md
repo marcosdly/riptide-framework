@@ -11,7 +11,7 @@
 
 [![Luau](https://img.shields.io/badge/Luau-00A2FF?style=flat-square&logo=lua&logoColor=white)](https://luau-lang.org/)
 [![Roblox](https://img.shields.io/badge/Roblox-111111?style=flat-square&logo=roblox&logoColor=white)](https://roblox.com/)
-[![Pesde](https://img.shields.io/badge/pesde-0.8.0-success?style=flat-square)](https://github.com/pesde-pkg)
+[![Pesde](https://img.shields.io/badge/pesde-0.8.1-success?style=flat-square)](https://github.com/pesde-pkg)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![CI](https://github.com/riptide-project/framework/actions/workflows/ci.yml/badge.svg)](https://github.com/riptide-project/framework/actions/workflows/ci.yml)
 
@@ -33,11 +33,24 @@ Riptide was built from the ground up for production Roblox games. It solves the 
 
 ## 📦 Installation
 
-Riptide is distributed via **[Pesde](https://github.com/pesde-pkg/pesde)**. Install it directly into your project using the Pesde CLI:
+Riptide is formally distributed via **[Pesde](https://github.com/pesde-pkg/pesde)**. Install it directly into your project using the Pesde CLI:
 
 ```bash
 pesde add riptide/core
 ```
+
+### Via Wally
+
+If you prefer Wally, Riptide is dual-published to the Wally index:
+
+```toml
+[dependencies]
+Riptide = "riptide/core@0.8.1"
+```
+
+### Manual Installation (.rbxm)
+
+If you strictly prefer not to use package managers, you can download `Riptide.rbxm` directly from the [Releases](https://github.com/riptide-project/framework/releases) tab and insert it into `ReplicatedStorage.Packages`.
 
 ## 🏁 Quick Look
 
@@ -64,6 +77,15 @@ end
 
 return PlayerState
 ```
+
+## 🧪 Testing Architecture
+
+Riptide guarantees production stability through a custom **Hybrid Testing Architecture** built on `frktest`.
+
+- **Development / CI**: Lightning-fast unit tests run via [Lune](https://github.com/lune-org/lune) CLI ensuring 0 millisecond regressions during active coding (`lune run test/lune/RunLuneTests.luau`).
+- **Engine Integration**: The exact same mock-free test suites seamlessly compile and run inside standard Roblox Studio DataModels, validating true Client/Server replication, network invocations, and Instance boundary behaviors.
+
+> Every single framework feature (StateReplication, ComponentService, Unified Networking, Async, and StateMachine) is covered by comprehensive Integration tests mapped across both sides of the network boundary.
 
 ## 📚 Documentation
 

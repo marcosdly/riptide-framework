@@ -55,16 +55,16 @@ end
 
 ## Automatic Cleanup
 
-The `PlayerLifecycle` module automatically triggers `StateReplication:_onPlayerRemoving(player)` **before** your `OnPlayerRemoving` hooks run. This clears all player-scoped state from the `StateReplication` registry, preventing stale data and memory leaks.
+The `PlayerLifecycle` module automatically triggers `StateReplication:_onPlayerRemoving(player)` **after** your `OnPlayerRemoving` hooks run. This allows your modules to safely read player-scoped state during shutdown, and then clears it from the `StateReplication` registry, preventing stale data and memory leaks.
 
 ```
 Player leaves
     │
     ▼
-StateReplication:_onPlayerRemoving(player)   ← automatic cleanup
+Module:OnPlayerRemoving(Riptide, player)     ← your hook
     │
     ▼
-Module:OnPlayerRemoving(Riptide, player)     ← your hook
+StateReplication:_onPlayerRemoving(player)   ← automatic cleanup
 ```
 
 ---

@@ -53,7 +53,7 @@ jobs:
         run: pesde install
 
       - name: Run tests
-        run: lune run .lune/run_tests.luau
+        run: lune run test/lune/RunLuneTests.luau
 
       - name: Build .rbxm
         run: rojo build default.project.json -o Riptide.rbxm

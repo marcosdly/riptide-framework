@@ -134,8 +134,11 @@ function Network._init(deps: NetworkDeps)
 	disconnectCurrentEventConnection()
 
 	if FunctionDispatcher then
-		FunctionDispatcher.OnServerInvoke = nil
-		FunctionDispatcher.OnClientInvoke = nil
+		if IS_SERVER then
+			FunctionDispatcher.OnServerInvoke = nil
+		else
+			FunctionDispatcher.OnClientInvoke = nil
+		end
 	end
 
 	IS_SERVER = deps.IsServer
@@ -143,12 +146,7 @@ function Network._init(deps: NetworkDeps)
 	UnreliableEventDispatcher = deps.UnreliableEventDispatcher
 	FunctionDispatcher = deps.FunctionDispatcher
 
-	if next(Handlers) then
-		warn("[Network] _init called with active handlers — clearing existing handlers.")
-	end
-
-	-- Clear any previously registered handlers (for test re-initialization)
-	table.clear(Handlers)
+	-- Do not clear Handlers here, as they may have been registered early during load phase
 	table.clear(Middlewares.server)
 	table.clear(Middlewares.client)
 
@@ -292,7 +290,11 @@ function Network.UseMiddleware(scope: "server" | "client", middleware: Middlewar
 	if type(middleware) ~= "function" then
 		error("[Network] UseMiddleware requires a middleware function.", 2)
 	end
-	table.insert((Middlewares :: any)[scope], middleware)
+	if scope == "server" then
+		table.insert(Middlewares.server, middleware)
+	else
+		table.insert(Middlewares.client, middleware)
+	end
 end
 
 function Network.ClearMiddlewares(scope: "server" | "client"?)
@@ -306,7 +308,11 @@ function Network.ClearMiddlewares(scope: "server" | "client"?)
 		error("[Network] ClearMiddlewares scope must be 'server' or 'client'.", 2)
 	end
 
-	table.clear((Middlewares :: any)[scope])
+	if scope == "server" then
+		table.clear(Middlewares.server)
+	else
+		table.clear(Middlewares.client)
+	end
 end
 
 function Network.Register(funcName: string, callback: Callback)
@@ -329,6 +335,10 @@ function Network.Unregister(funcName: string, callback: Callback)
 			Handlers[funcName] = nil
 		end
 	end
+end
+
+function Network._clearHandlersForTests()
+	table.clear(Handlers)
 end
 
 return Network :: NetworkAPI
