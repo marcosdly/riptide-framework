@@ -41,7 +41,9 @@ pesde add riptide/core
 
 ### Via Wally
 
-If you prefer Wally, Riptide is dual-published to the Wally index:
+> ⚠️ **Notice**: The `riptide` Wally scope is currently pending server registry synchronization from UpliftGames. For immediate access, please use **Pesde** or the `.rbxm` file.
+
+If you prefer Wally, Riptide will shortly be available on the Wally index:
 
 ```toml
 [dependencies]

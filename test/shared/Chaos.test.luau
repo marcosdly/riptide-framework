@@ -55,7 +55,7 @@ return function()
 					instances[i] = mockInstance
 					cs._registry[mockInstance] = {}
 					cs._registry[mockInstance]["TagAlpha"] = {
-						Destroy = function() end
+						Destroy = function() end,
 					}
 				end
 
@@ -72,13 +72,13 @@ return function()
 					cs._registry[mockInstance] = nil
 				end
 			end
-			
+
 			-- Ensure registry is completely empty after churn
 			local remaining = 0
 			for _, _ in pairs(cs._registry) do
 				remaining += 1
 			end
-			
+
 			check.equal(remaining, 0)
 		end)
 
@@ -92,14 +92,14 @@ return function()
 			end
 
 			local results = Async.Parallel(fns, 0.0001)
-			
+
 			local timeouts = 0
 			for i = 1, 500 do
 				if results[i] == nil then
 					timeouts += 1
 				end
 			end
-			
+
 			check.equal(timeouts, 500)
 		end)
 
@@ -107,20 +107,23 @@ return function()
 			local sig = Signal.new()
 			local conns = {}
 			local executions = 0
-			
+
 			for _ = 1, 1000 do
-				table.insert(conns, sig:Connect(function()
-					executions += 1
-					-- Disconnect ALL of them during iteration
-					for _, c in ipairs(conns) do
-						c:Disconnect()
-					end
-				end))
+				table.insert(
+					conns,
+					sig:Connect(function()
+						executions += 1
+						-- Disconnect ALL of them during iteration
+						for _, c in ipairs(conns) do
+							c:Disconnect()
+						end
+					end)
+				)
 			end
-			
+
 			sig:Fire()
 			task.wait()
-			
+
 			-- Only the first one should execute, or maybe a few before disconnects take effect
 			-- But it must not crash the linked list traversal.
 			check.is_true(executions > 0)
@@ -134,7 +137,7 @@ return function()
 				_moduleAliases = {},
 				ComponentService = { _start = function() end },
 			}
-			
+
 			-- Mock Riptide.GetService that resolves loading on request
 			-- to emulate an engine that does lazy/circular loading dynamically.
 			local loadAttempts = 0
@@ -143,7 +146,7 @@ return function()
 				if loadAttempts > 200 then
 					error("Circular dependency detected during initialization", 2)
 				end
-				
+
 				local target = name == "A" and "B" or "A"
 				return self:GetService(target)
 			end
@@ -151,7 +154,7 @@ return function()
 			local success, err = pcall(function()
 				riptide:GetService("A")
 			end)
-			
+
 			check.equal(success, false)
 			check.is_true(string.find(tostring(err), "Circular dependency detected") ~= nil)
 		end)

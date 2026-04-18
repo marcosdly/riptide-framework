@@ -17,6 +17,10 @@ pesde add riptide/core
 
 ### Via Wally
 
+:::caution[Wally Scope Pending]
+The `riptide` Wally scope is currently awaiting registry synchronization. For immediate installation, please use **Pesde** or the manual `.rbxm` download below.
+:::
+
 If you strictly prefer Wally, add this to your `wally.toml`:
 
 ```toml

@@ -1,7 +1,7 @@
 --!strict
 local ComponentService = require("../../src/shared/ComponentService")
-local _Network = require("../../src/shared/Network")
 local Signal = require("../../src/shared/Utilities/Signal")
+local _Network = require("../../src/shared/Network")
 
 -- Helper to format microsecond results
 local function bench(name: string, iterations: number, fn: () -> ())
