@@ -18,13 +18,13 @@ local function loadTests(parent: Instance)
 						suite()
 					end
 				end)
-				
+
 				if not ok then
 					warn(string.format("[Client QA] Failed to load %s: %s", child:GetFullName(), tostring(err)))
 				end
 			end
 		end
-		
+
 		if child:IsA("Folder") or child:IsA("ModuleScript") then
 			loadTests(child)
 		end
@@ -32,7 +32,7 @@ local function loadTests(parent: Instance)
 end
 
 -- Optional: Wait a brief moment to ensure client state is fully initialized before spamming output
-task.wait(1) 
+task.wait(1)
 
 print("========================================")
 print("     [Client] QA Test Runner Started    ")

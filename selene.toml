@@ -3,6 +3,7 @@ std = "roblox"
 [rules]
 # Only allow undefined variables in test files (frktest/Lune globals)
 undefined_variable = "warn"
+global_usage = "allow"
 
 [config]
 property_access_allow = ["script"]

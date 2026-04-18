@@ -1,17 +1,25 @@
 --!strict
-local Network = require("../../src/shared/Network")
 local ComponentService = require("../../src/shared/ComponentService")
+local _Network = require("../../src/shared/Network")
 local Signal = require("../../src/shared/Utilities/Signal")
 
 -- Helper to format microsecond results
 local function bench(name: string, iterations: number, fn: () -> ())
 	local start = os.clock()
-	for i = 1, iterations do
+	for _ = 1, iterations do
 		fn()
 	end
 	local elapsed = os.clock() - start
 	local timePerOpUs = (elapsed / iterations) * 1_000_000
-	print(string.format("%-30s | %d iters | Total: %.3f ms | Per Op: %.4f µs", name, iterations, elapsed * 1000, timePerOpUs))
+	print(
+		string.format(
+			"%-30s | %d iters | Total: %.3f ms | Per Op: %.4f µs",
+			name,
+			iterations,
+			elapsed * 1000,
+			timePerOpUs
+		)
+	)
 end
 
 print("--- RIPTIDE COMPONENT BENCHMARKS ---")
@@ -29,7 +37,6 @@ bench("ComponentService:Get (O(1))", 1_000_000, function()
 	local _ = ComponentService:Get(mockInstance :: any, "Hero")
 end)
 
-
 -- 2. Signal Benchmark
 local benchSig = Signal.new()
 benchSig:Connect(function(val)
@@ -41,7 +48,7 @@ bench("Signal:Fire (1 connection)", 1_000_000, function()
 end)
 
 local multipleSig = Signal.new()
-for i = 1, 10 do
+for _ = 1, 10 do
 	multipleSig:Connect(function() end)
 end
 bench("Signal:Fire (10 connections)", 1_000_000, function()
@@ -55,9 +62,13 @@ local riptideMock = {
 }
 function riptideMock:GetService(name)
 	local module = self._modules[name]
-	if module then return module end
+	if module then
+		return module
+	end
 	local alias = self._moduleAliases[name]
-	if type(alias) == "string" then return self._modules[alias] end
+	if type(alias) == "string" then
+		return self._modules[alias]
+	end
 end
 
 bench("Riptide:GetService", 1_000_000, function()

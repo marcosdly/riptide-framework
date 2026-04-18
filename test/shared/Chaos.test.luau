@@ -14,7 +14,7 @@ local MockRemoteFunction = Env.Mocks.MockRemoteFunction
 local ComponentService = Env.RiptideShared.ComponentService
 local Async = Env.RiptideShared.Async
 local Signal = Env.RiptideShared.Signal
-local ModuleLoader = Env.RiptideShared.ModuleLoader
+local _ModuleLoader = Env.RiptideShared.ModuleLoader
 
 return function()
 	test.suite("Chaos Scenarios", function()
@@ -34,7 +34,7 @@ return function()
 				count += 1
 			end)
 
-			for i = 1, 10000 do
+			for _ = 1, 10000 do
 				mockEvent.OnServerEvent:Fire("MockPlayer", "FloodEvent")
 			end
 			task.wait()
@@ -84,7 +84,7 @@ return function()
 
 		test.case("Async Timeout Hell: 500 parallel Run with 0.0001 timeout", function()
 			local fns = {}
-			for i = 1, 500 do
+			for _ = 1, 500 do
 				table.insert(fns, function()
 					task.wait(0.1) -- 0.1s guarantees timeout
 					return "done"
@@ -108,7 +108,7 @@ return function()
 			local conns = {}
 			local executions = 0
 			
-			for i = 1, 1000 do
+			for _ = 1, 1000 do
 				table.insert(conns, sig:Connect(function()
 					executions += 1
 					-- Disconnect ALL of them during iteration

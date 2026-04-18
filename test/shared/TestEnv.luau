@@ -5,13 +5,13 @@ local Env: any = {}
 if isRoblox then
 	local ReplicatedStorage = game:GetService("ReplicatedStorage")
 	Env.frktest = require(ReplicatedStorage:WaitForChild("Packages"):WaitForChild("frktest"))
-	
+
 	local RiptideFolder = ReplicatedStorage:WaitForChild("Riptide")
 	local SharedFolder = RiptideFolder:WaitForChild("shared")
 	local UtilitiesFolder = SharedFolder:WaitForChild("Utilities")
 
 	Env.RiptideInit = require(RiptideFolder)
-	
+
 	-- Roblox DataModel paths mapped directly to Instances
 	Env.RiptideShared = {
 		Network = require(SharedFolder:WaitForChild("Network")),
@@ -34,7 +34,7 @@ if isRoblox then
 else
 	Env.frktest = require("../../luau_packages/frktest")
 	Env.RiptideInit = nil -- init.lua requires game instance, tested via DataModel or mock
-	
+
 	-- Lune raw paths mapped to file requires
 	Env.RiptideShared = {
 		Network = require("../../src/shared/Network"),
@@ -53,7 +53,9 @@ else
 		MockPlayers = require("./mocks/MockPlayers"),
 	}
 
-	local ok, luneTask = pcall(function() return require("@lune/task") end)
+	local ok, luneTask = pcall(function()
+		return require("@lune/task")
+	end)
 	Env.task = ok and luneTask or task
 end
 

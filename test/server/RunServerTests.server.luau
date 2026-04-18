@@ -6,9 +6,9 @@ local frktest = require(Packages:WaitForChild("frktest"))
 local console_reporter = frktest.reporters.console_reporter
 
 -- Initialize Riptide immediately so Remotes are created and start replicating to Client
-local Riptide = require(ReplicatedStorage:WaitForChild("Riptide"))
+local _Riptide = require(ReplicatedStorage:WaitForChild("Riptide"))
 
--- Yield server for 1 second to allow ReplicatedStorage dynamic instances to reach Client 
+-- Yield server for 1 second to allow ReplicatedStorage dynamic instances to reach Client
 -- before we freeze the server thread with intensive synchronous tests.
 task.wait(1)
 
@@ -25,13 +25,13 @@ local function loadTests(parent: Instance)
 						suite()
 					end
 				end)
-				
+
 				if not ok then
 					warn(string.format("[Server QA] Failed to load %s: %s", child:GetFullName(), tostring(err)))
 				end
 			end
 		end
-		
+
 		if child:IsA("Folder") or child:IsA("ModuleScript") then
 			loadTests(child)
 		end
