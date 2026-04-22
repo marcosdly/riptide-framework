@@ -39,7 +39,7 @@ game/
 ## Key Conventions
 
 | Folder | Purpose | Passed to |
-|--------|---------|-----------|
+|--------|---------|-----------| 
 | `Services/` | Server-only game logic (data, economy, combat). | `ModulesFolder` on server |
 | `Controllers/` | Client-only UI and input logic. | `ModulesFolder` on client |
 | `SharedModules/` | Code shared by both server and client. | `SharedModulesFolder` on both |
@@ -79,6 +79,10 @@ Riptide.Client.Launch({
     ComponentsFolder = ReplicatedStorage.Components,
 })
 ```
+
+:::tip
+`SharedModulesFolder` and `ComponentsFolder` are optional. If your project doesn't use shared modules or components yet, you can omit them.
+:::
 
 ## Multi-Folder Setup
 

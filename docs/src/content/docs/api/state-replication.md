@@ -147,6 +147,15 @@ unsubscribe()
 Always call the unsubscribe function when the UI element or controller is destroyed to prevent memory leaks.
 :::
 
+:::note
+The immediate callback may receive `nil` if the state hasn't been replicated yet (e.g., the server hasn't set the value, or the snapshot is still in transit). Always handle `nil` defensively:
+```lua
+Riptide.State:Subscribe("coins", function(value)
+    coinLabel.Text = "Coins: " .. tostring(value or 0)
+end)
+```
+:::
+
 ---
 
 ### `RequestSync`

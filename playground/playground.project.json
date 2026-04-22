@@ -1,0 +1,39 @@
+{
+  "name": "Riptide-Playground",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Packages": {
+        "$className": "Folder",
+        "Riptide": {
+          "$path": "../src"
+        }
+      },
+      "SharedModules": {
+        "$path": "shared"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "Main": {
+        "$path": "server/main.server.lua"
+      },
+      "Services": {
+        "$path": "server/Services"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "Main": {
+          "$path": "client/main.client.lua"
+        },
+        "Controllers": {
+          "$path": "client/Controllers"
+        }
+      }
+    }
+  }
+}

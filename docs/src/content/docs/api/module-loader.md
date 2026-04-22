@@ -31,6 +31,17 @@ _moduleAliases: { [string]: string | false }  -- shortName → canonicalId | fal
 
 ## Module Lookup Methods
 
+:::caution
+All module getters use **dot `.` syntax** — they are standalone functions, not methods. Using colon `:` syntax will produce unexpected results:
+```lua
+-- ✅ Correct
+local svc = Riptide.GetService("DataService")
+
+-- ❌ Wrong — passes Riptide table as the `name` argument
+local svc = Riptide:GetService("DataService")
+```
+:::
+
 ### `GetModule`
 
 ```lua

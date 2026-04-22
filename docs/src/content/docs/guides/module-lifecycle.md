@@ -26,9 +26,12 @@ After all modules are loaded, Riptide calls `Init` on every module **synchronous
 
 ```lua
 function MyService:Init(Riptide: Riptide)
+    -- `self` = your module table (MyService)
+    -- `Riptide` = the framework reference
+
     -- Safe to call GetService / GetController here
     self.DataService = Riptide.GetService("DataService")
-    
+
     -- Safe to register network handlers
     Riptide.Network.Register("FetchCoins", function(player)
         return self:GetCoins(player)
@@ -37,6 +40,17 @@ end
 ```
 
 Since Init is synchronous, all modules have been loaded (but not yet started) when your Init runs. This is the correct place for dependency injection.
+
+:::important
+All lifecycle methods use **colon `:` syntax**, meaning `self` (your module table) is the implicit first argument and `Riptide` (the framework reference) is the second. Module getters like `GetService` and `GetController` use **dot `.` syntax** — they are standalone functions, not methods:
+```lua
+-- ✅ Correct
+Riptide.GetService("DataService")
+
+-- ❌ Wrong — will pass Riptide as `name`
+Riptide:GetService("DataService")
+```
+:::
 
 ### 3. Start Phase (asynchronous)
 
@@ -87,11 +101,11 @@ Riptide.GetService("Utils")  -- ⚠️ nil
 
 ## Module Getters
 
-| Method                | Context     | Description                                    |
-|-----------------------|-------------|------------------------------------------------|
-| `Riptide.GetModule(name)` | Shared  | Universal module lookup by canonical ID or alias. |
-| `Riptide.GetService(name)` | Server | Alias for `GetModule`. **Errors** if called on client. |
-| `Riptide.GetController(name)` | Client | Alias for `GetModule`. **Errors** if called on server. |
+| Method                | Context     | Syntax | Description                                    |
+|-----------------------|-------------|--------|------------------------------------------------|
+| `Riptide.GetModule(name)` | Shared  | dot `.` | Universal module lookup by canonical ID or alias. |
+| `Riptide.GetService(name)` | Server | dot `.` | Alias for `GetModule`. **Errors** if called on client. |
+| `Riptide.GetController(name)` | Client | dot `.` | Alias for `GetModule`. **Errors** if called on server. |
 
 :::caution
 Calling `GetService` on the client or `GetController` on the server will throw a runtime error. Use the context-appropriate getter for type safety and clear intent.
@@ -110,8 +124,9 @@ type Riptide = RiptidePkg.Riptide
 local CoinsService = {}
 
 function CoinsService:Init(Riptide: Riptide)
+    -- Store framework references for later use in Start and lifecycle hooks
     self.State = Riptide.State
-    
+
     Riptide.Network.Register("GetCoins", function(player)
         return self.State:Get("coins", player)
     end)
@@ -122,7 +137,9 @@ function CoinsService:Start(Riptide: Riptide)
 end
 
 function CoinsService:OnPlayerAdded(Riptide: Riptide, player: Player)
-    self.State:SetForPlayer(player, "coins", 100)
+    -- In lifecycle hooks, prefer using the `Riptide` argument directly
+    -- rather than `self.State`, as retroactive hooks may fire before Init.
+    Riptide.State:SetForPlayer(player, "coins", 100)
 end
 
 return CoinsService
