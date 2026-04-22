@@ -9,6 +9,20 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 ### Added
 - (New features arriving soon...)
 
+## [0.8.2] - 2026-04-22
+
+### Fixed
+- **Critical**: `StateReplication` per-player state data loss caused by Luau garbage-collecting weak-key table (`__mode = "k"`) entries for Player userdata. Replaced `_playerState` and `_playerVersions` with strong tables; explicit cleanup in `_onPlayerRemoving` already handles memory management. This bug caused `State:Get(key, player)` to intermittently return `nil` for previously set per-player values.
+
+### Documentation
+- **Getting Started**: Fixed Rojo project config — removed intermediate `Server`/`Client` container folders that caused path mismatches with code examples. Renamed `Shared` to `SharedModules` for consistency. Added `SharedModulesFolder` to both server and client launch examples.
+- **Getting Started**: Fixed client entry point path from `Players.LocalPlayer.PlayerScripts` to `Players.LocalPlayer.PlayerScripts.Controllers`. Fixed duplicate section numbering. Updated expected output to match real framework logs.
+- **Module Lifecycle**: Added explicit documentation for `self` vs `Riptide` arguments in lifecycle methods. Added callout clarifying that `GetService`/`GetController`/`GetModule` use **dot** `.` syntax (functions, not methods). Added `Syntax` column to Module Getters table.
+- **Player Lifecycle**: Documented that retroactive `OnPlayerAdded` hooks fire **before** the Init phase. Added full execution order diagram. Added safety guidance to use the `Riptide` argument directly (not `self.*` fields) inside lifecycle hooks.
+- **State Replication**: Added note that `Subscribe` immediate callback may receive `nil` if state hasn't been replicated yet, with defensive coding pattern.
+- **Module Loader**: Added caution callout about dot `.` vs colon `:` syntax for module getter functions.
+- **Project Structure**: Added tip noting that `SharedModulesFolder` and `ComponentsFolder` are optional config fields.
+
 ## [0.8.1] - 2026-04-18
 
 ### Changed

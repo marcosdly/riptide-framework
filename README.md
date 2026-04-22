@@ -11,7 +11,7 @@
 
 [![Luau](https://img.shields.io/badge/Luau-00A2FF?style=flat-square&logo=lua&logoColor=white)](https://luau-lang.org/)
 [![Roblox](https://img.shields.io/badge/Roblox-111111?style=flat-square&logo=roblox&logoColor=white)](https://roblox.com/)
-[![Pesde](https://img.shields.io/badge/pesde-0.8.1-success?style=flat-square)](https://github.com/pesde-pkg)
+[![Pesde](https://img.shields.io/badge/pesde-0.8.2-success?style=flat-square)](https://github.com/pesde-pkg)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 [![CI](https://github.com/riptide-project/framework/actions/workflows/ci.yml/badge.svg)](https://github.com/riptide-project/framework/actions/workflows/ci.yml)
 
@@ -47,7 +47,7 @@ If you prefer Wally, Riptide will shortly be available on the Wally index:
 
 ```toml
 [dependencies]
-Riptide = "riptide/core@0.8.1"
+Riptide = "riptide/core@0.8.2"
 ```
 
 ### Manual Installation (.rbxm)

@@ -25,7 +25,7 @@ If you strictly prefer Wally, add this to your `wally.toml`:
 
 ```toml
 [dependencies]
-Riptide = "riptide/core@0.8.1"
+Riptide = "riptide/core@0.8.2"
 ```
 
 ### Manual Installation (.rbxm)
@@ -53,24 +53,46 @@ If you are using Rojo to sync your code into Roblox Studio, here is the recommen
       "Packages": {
         "$path": "roblox_packages"
       },
-      "Shared": {
+      "SharedModules": {
         "$path": "src/shared"
       }
     },
     "ServerScriptService": {
-      "Server": {
-        "$path": "src/server"
+      "main": {
+        "$path": "src/server/main.server.lua"
+      },
+      "Services": {
+        "$path": "src/server/Services"
       }
     },
     "StarterPlayer": {
       "StarterPlayerScripts": {
-        "Client": {
-          "$path": "src/client"
+        "main": {
+          "$path": "src/client/main.client.lua"
+        },
+        "Controllers": {
+          "$path": "src/client/Controllers"
         }
       }
     }
   }
 }
+```
+
+This produces the following hierarchy inside Roblox Studio:
+
+```
+ServerScriptService/
+├── main                    (Script)
+└── Services/               (Folder)
+
+StarterPlayer/StarterPlayerScripts/
+├── main                    (LocalScript)
+└── Controllers/            (Folder)
+
+ReplicatedStorage/
+├── Packages/               (installed dependencies)
+└── SharedModules/          (shared code)
 ```
 
 ---
@@ -89,6 +111,8 @@ Let's create a simple Server service that prints a message when a player joins.
 -- ServerScriptService/Services/HelloService.lua
 local HelloService = {}
 
+-- The `:` colon syntax means `self` (HelloService table) is the implicit first argument.
+-- `Riptide` is the framework reference passed as the second argument.
 function HelloService:Init(Riptide)
     print("HelloService initialized!")
 end
@@ -104,11 +128,15 @@ end
 return HelloService
 ```
 
-Riptide will automatically call `Init`, then `Start`, and trigger `OnPlayerAdded` whenever someone joins.
+Riptide will automatically call `Init` (synchronously), then `Start` (via `task.spawn`). The `OnPlayerAdded` hook fires whenever a player joins the server.
+
+:::note
+Inside `OnPlayerAdded`, always use the `Riptide` argument (not `self.State` or other fields set during `Init`) to access framework APIs. See [Player Lifecycle](../../api/player-lifecycle/) for details.
+:::
 
 ---
 
-## 3. Launching the Framework
+## 4. Launching the Framework
 
 Riptide does **not** start automatically. You must explicitly tell it where your modules are and launch it from both the server and client.
 
@@ -121,12 +149,11 @@ Create a standard `Script` inside `ServerScriptService` (e.g., `main.server.lua`
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
--- Require the framework
 local Riptide = require(ReplicatedStorage.Packages.Riptide)
 
--- Launch the server, supplying our Services folder
 Riptide.Server.Launch({
     ModulesFolder = ServerScriptService.Services,
+    SharedModulesFolder = ReplicatedStorage.SharedModules, -- optional
 })
 ```
 
@@ -135,31 +162,37 @@ Riptide.Server.Launch({
 Create a `LocalScript` inside `StarterPlayerScripts` (e.g., `main.client.lua`):
 
 ```lua
--- StarterPlayer.StarterPlayerScripts.main.client.lua
+-- StarterPlayer/StarterPlayerScripts/main.client.lua
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 local Riptide = require(ReplicatedStorage.Packages.Riptide)
 
--- We don't have Controllers yet, but we must launch the client anyway
 Riptide.Client.Launch({
-    ModulesFolder = Players.LocalPlayer.PlayerScripts,
+    ModulesFolder = Players.LocalPlayer.PlayerScripts.Controllers,
+    SharedModulesFolder = ReplicatedStorage.SharedModules, -- optional
 })
 ```
 
+:::tip
+`SharedModulesFolder` is optional. If provided, shared modules are loaded **before** side-specific modules, so services and controllers can depend on shared code during `Init`. See [Project Structure](../project-structure/) for details.
+:::
+
 ---
 
-## 4. Play the Game!
+## 5. Play the Game!
 
 Press **Play** in Roblox Studio. In your Output window, you should see:
 
 ```
+🌊 [Riptide] Server Initialization Started...
 HelloService initialized!
 HelloService started!
+🌊 [Riptide] ✅ Server Start Phase Dispatched.
 Welcome to the game, Player1!
 ```
 
-Congratulations! You've successfully built your first Riptide project. 
+Congratulations! You've successfully built your first Riptide project.
 
 ## Next Steps
 

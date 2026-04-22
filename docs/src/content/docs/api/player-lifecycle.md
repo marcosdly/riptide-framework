@@ -29,6 +29,23 @@ function CoinsService:OnPlayerAdded(Riptide, player)
 end
 ```
 
+:::caution[Use the Riptide argument, not self fields]
+Retroactive `OnPlayerAdded` calls execute **before** the `Init` phase. This means any fields you set on `self` inside `Init` (like `self.State = Riptide.State`) are **not yet available** when the retroactive hook fires.
+
+**Always use the `Riptide` argument directly** inside lifecycle hooks:
+```lua
+-- ✅ Safe — uses the Riptide argument directly
+function MyService:OnPlayerAdded(Riptide, player)
+    Riptide.State:SetForPlayer(player, "coins", 100)
+end
+
+-- ❌ Unsafe — self.State may be nil if called before Init
+function MyService:OnPlayerAdded(Riptide, player)
+    self.State:SetForPlayer(player, "coins", 100)
+end
+```
+:::
+
 :::note
 Retroactive calls ensure that if a player connects before the framework finishes initializing, they still receive their `OnPlayerAdded` hook. No players are missed.
 :::
@@ -41,7 +58,7 @@ Retroactive calls ensure that if a player connects before the framework finishes
 function MyService:OnPlayerRemoving(Riptide: Riptide, player: Player)
 ```
 
-Called when a player is leaving the server (`Players.PlayerRemoving`).
+Called when a player is leaving the server (`Players.PlayerRemoving`). By this point, all modules have completed their `Init` and `Start` phases, so it is safe to read `self` fields here.
 
 ```lua
 function DataService:OnPlayerRemoving(Riptide, player)
@@ -53,19 +70,39 @@ end
 
 ---
 
+## Execution Order
+
+```
+Server starts
+    │
+    ▼
+PlayerLifecycle:Start()                       ← retroactive OnPlayerAdded for existing players
+    │
+    ▼
+Init Phase (synchronous)                      ← self.* fields are set here
+    │
+    ▼
+Start Phase (task.spawn)                      ← game logic begins
+    │
+    ▼
+Players.PlayerAdded → OnPlayerAdded(...)      ← new players (Init is done, self.* is safe)
+    │
+    ▼
+Players.PlayerRemoving → OnPlayerRemoving(...)
+    │
+    ▼
+StateReplication:_onPlayerRemoving(player)    ← automatic cleanup
+```
+
+:::important
+For **retroactive** calls (players already connected at launch), hooks fire **before Init**. For players joining **after** launch, hooks fire **after** Init and Start. Always prefer the `Riptide` argument to be safe in both cases.
+:::
+
+---
+
 ## Automatic Cleanup
 
 The `PlayerLifecycle` module automatically triggers `StateReplication:_onPlayerRemoving(player)` **after** your `OnPlayerRemoving` hooks run. This allows your modules to safely read player-scoped state during shutdown, and then clears it from the `StateReplication` registry, preventing stale data and memory leaks.
-
-```
-Player leaves
-    │
-    ▼
-Module:OnPlayerRemoving(Riptide, player)     ← your hook
-    │
-    ▼
-StateReplication:_onPlayerRemoving(player)   ← automatic cleanup
-```
 
 ---
 
@@ -97,6 +134,7 @@ function SessionService:Init(Riptide: Riptide)
 end
 
 function SessionService:OnPlayerAdded(Riptide: Riptide, player: Player)
+    -- Use Riptide argument directly (safe for retroactive calls)
     self._sessions[player.UserId] = os.time()
     Riptide.State:SetForPlayer(player, "sessionStart", os.time())
 end

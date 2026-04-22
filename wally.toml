@@ -1,6 +1,6 @@
 [package]
 name = "riptide/core"
-version = "0.8.1"
+version = "0.8.2"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
 description = "A lightweight and professional framework for Roblox."

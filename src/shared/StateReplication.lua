@@ -126,8 +126,8 @@ StateReplication._network = nil :: NetworkLike?
 
 StateReplication._globalState = {} :: { [string]: any }
 StateReplication._globalVersions = {} :: { [string]: number }
-StateReplication._playerState = setmetatable({}, { __mode = "k" }) :: { [any]: { [string]: any } }
-StateReplication._playerVersions = setmetatable({}, { __mode = "k" }) :: { [any]: { [string]: number } }
+StateReplication._playerState = {} :: { [any]: { [string]: any } }
+StateReplication._playerVersions = {} :: { [any]: { [string]: number } }
 
 StateReplication._clientGlobalState = {} :: { [string]: any }
 StateReplication._clientGlobalVersions = {} :: { [string]: number }
@@ -165,8 +165,8 @@ local function resetState(self: any)
 	table.clear(self._syncBuffer)
 	self._syncYielding = false
 
-	self._playerState = setmetatable({}, { __mode = "k" })
-	self._playerVersions = setmetatable({}, { __mode = "k" })
+	self._playerState = {}
+	self._playerVersions = {}
 end
 
 function StateReplication:_init(deps: StateReplicationDeps)
