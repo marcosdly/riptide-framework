@@ -1,5 +1,5 @@
 [package]
-name = "riptide/core"
+name = "marcosdly/riptide-framework"
 version = "0.8.2"
 registry = "https://github.com/UpliftGames/wally-index"
 realm = "shared"
